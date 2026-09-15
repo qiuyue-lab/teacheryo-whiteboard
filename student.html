@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>TeacherYO · 学生端</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<style>
+  html,body{background:var(--bg)}
+  .phone-body{max-width:520px;margin:0 auto;padding:20px 16px 60px}
+  .stu-top{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+  .stu-top .logo{font-size:16px}
+  .stu-top .logo .mark-avatar{width:34px;height:34px;border-radius:10px}
+  .stu-top .logo .mark-avatar img{height:31px}
+  .hero-mini{background:var(--paper);border:2px solid var(--line);border-radius:18px;padding:18px 18px;box-shadow:4px 4px 0 rgba(28,25,23,.1);margin-bottom:14px}
+  .hm-tag{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:900;padding:3px 11px;border-radius:999px;border:1.5px solid var(--line);margin-bottom:9px}
+  .hero-mini h1{font-size:20px;font-weight:900;line-height:1.45}
+  .hero-mini .q-desc{margin-top:8px;font-size:12.5px;color:var(--ink-2);line-height:1.7}
+  .name-gate .btn{width:100%;margin-top:6px}
+  .name-row input{flex:1;min-width:0}
+  .opt-vote{margin-top:4px}
+  .submit-bar{margin-top:18px;position:sticky;bottom:14px}
+  .submit-bar .btn{width:100%;padding:14px;font-size:15px;border-radius:14px}
+  .done-hero{text-align:center;padding:46px 18px;background:var(--paper);border:2px solid var(--line);border-radius:22px;box-shadow:5px 5px 0 rgba(28,25,23,.12)}
+  .done-hero .big{font-size:52px}
+  .done-hero h1{font-size:22px;font-weight:900;margin:14px 0 8px}
+  .done-hero p{color:var(--ink-2);font-size:13px;line-height:1.8}
+  .mat-open{margin-top:12px;display:block}
+  .part-nav{display:flex;align-items:center;gap:10px;justify-content:center;margin:16px 0;font-weight:900;font-size:13px;color:var(--ink-2)}
+  .part-nav button{width:34px;height:34px;border-radius:10px;border:2px solid var(--line);background:#fff;box-shadow:2px 2px 0 rgba(28,25,23,.14);font-size:14px}
+  .dots{display:flex;gap:6px;justify-content:center;margin-top:10px}
+  .dots i{width:8px;height:8px;border-radius:50%;background:var(--line-soft)}
+  .dots i.on{background:var(--accent)}
+  .err-zone{padding:60px 22px;text-align:center}
+  .err-zone h2{font-weight:900;margin:14px 0 8px}
+  .multi-hint{font-size:11.5px;color:var(--ink-3);font-weight:700;margin:-4px 0 12px}
+  .legend-sel{display:flex;gap:8px;flex-wrap:wrap}
+  .legend-sel label{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:800;border:2px solid var(--line);border-radius:999px;padding:7px 14px;cursor:pointer;background:#fff;box-shadow:2px 2px 0 rgba(28,25,23,.12)}
+  .legend-sel label.on{transform:translate(-1px,-1px);box-shadow:3px 3px 0 rgba(28,25,23,.2)}
+  .legend-sel input{display:none}
+  .legend-sel .sw{width:13px;height:13px;border-radius:4px;border:1px solid rgba(0,0,0,.15);flex-shrink:0}
+  .shape-sel{display:flex;gap:8px;flex-wrap:wrap}
+  .shape-btn{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:800;font-family:inherit;border:2px solid var(--line);border-radius:999px;padding:7px 14px;cursor:pointer;background:#fff;color:var(--ink);box-shadow:2px 2px 0 rgba(28,25,23,.12)}
+  .shape-btn span{font-size:11.5px;color:var(--ink-3)}
+  .shape-btn.on{background:var(--accent-soft,#FBE7C9);border-color:var(--accent);transform:translate(-1px,-1px);box-shadow:3px 3px 0 rgba(28,25,23,.2)}
+  .thankyou{margin-top:14px;text-align:center;color:var(--ink-3);font-weight:700;font-size:12.5px;line-height:1.8}
+  .home-hero{background:var(--paper);border:2px solid var(--line);border-radius:20px;padding:26px 20px;text-align:center;box-shadow:5px 5px 0 rgba(28,25,23,.12);margin-bottom:14px}
+  .home-hero .big{font-size:44px}
+  .home-hero h1{font-size:21px;font-weight:900;margin:10px 0 4px}
+  .home-hero p{color:var(--ink-2);font-size:12.5px;line-height:1.7;margin-bottom:6px}
+  .code-inp{width:100%;text-align:center;font-size:30px;font-weight:900;letter-spacing:.35em;padding:14px 10px;border:2px solid var(--line);border-radius:14px;background:#fff;font-family:'Montserrat',monospace;color:var(--accent-deep);box-shadow:inset 0 1px 4px rgba(0,0,0,.05);outline:none}
+  .code-inp:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+  .code-inp::placeholder{letter-spacing:.02em;font-size:15px;color:var(--line-soft);font-weight:800}
+  .join-bar{display:flex;gap:8px;align-items:center;margin-top:14px}
+  .join-bar .field{flex:1;margin:0;text-align:left}
+  .join-bar .field input{font-size:15px;font-weight:800}
+  .home-foot{text-align:center;color:var(--ink-3);font-weight:700;font-size:11.5px;line-height:1.9}
+  .home-foot b{color:var(--ink-2)}
+  /* 共享看板 + 输入区 */
+  .stu-input{background:var(--paper);border:2px solid var(--accent);border-radius:16px;padding:16px;margin-top:16px;box-shadow:3px 3px 0 rgba(28,25,23,.12)}
+  .stu-submitted{text-align:center;padding:14px 16px;background:var(--ok-soft);border:1.5px solid var(--ok);border-radius:12px;font-weight:800;font-size:13px;color:var(--ok);margin-top:8px}
+  .stu-input .field:first-child{margin-top:0}
+  .stu-input .unit-card{box-shadow:none;margin-bottom:0}
+  .stu-board-header{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+  .stu-live{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:800;color:var(--ok)}
+  .stu-live i{width:6px;height:6px;border-radius:50%;background:var(--ok);animation:stu-blink 1.4s infinite}
+  @keyframes stu-blink{0%,100%{opacity:1}50%{opacity:0}}
+</style>
+</head>
+<body>
+<div class="phone-body">
+  <div class="stu-top">
+    <div class="logo" style="cursor:default"><span class="mark-avatar"><img src="assets/avatar.png" alt=""></span><span>TeacherYO<small>学生端</small></span></div>
+  </div>
+  <div id="app"><div class="hero-mini"><div class="loading-zone">正在进入课堂…</div></div></div>
+</div>
+
+<script src="vendor/cloudbase.full.js"></script>
+<script src="config.js"></script>
+<script src="config.local.js"></script>
+<script src="js/store.local.js"></script>
+<script src="js/common.js"></script>
+<script src="js/db.js"></script>
+<script>
+let toastTimer = null;
+function toast(msg) {
+  const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg; document.body.appendChild(t);
+  requestAnimationFrame(() => t.classList.add('show'));
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 300); }, 2400);
+}
+const S = {
+  board: null, units: null, meta: null, name: '',
+  qIdx: 0, choiceSel: [], subbed: [],
+  selColor: '', selQuestion: 0,
+  boardRows: [], poll: null, materialSels: [],
+  boot() {
+    const bid = new URLSearchParams(location.search).get('b');
+    const code = (new URLSearchParams(location.search).get('c') || '').trim();
+    if (code) {
+      this.resolveCode(code, true);
+      return;
+    }
+    if (bid) {
+      TY.db.currentUid().then(() => TY.db.getBoard(bid)).then((b) => this.enterBoard(b))
+        .catch((e) => this.renderError('连接失败', esc(e && e.message || e)));
+      return;
+    }
+    this.renderHome();
+  },
+  /* 校验互动并进入 */
+  enterBoard(b) {
+    if (!b) { this.renderError('互动不存在', '这个互动可能已被老师删除。'); return; }
+    if (b.status !== 'active') { this.renderError('互动已结束', '老师已结束这次互动，数据已归档保存。'); return; }
+    this.board = b; const { units, meta } = boardUnits(b);
+    this.units = units; this.meta = meta;
+    this.selColor = this.firstLegendColor(b);
+    // 恢复已提交状态
+    this.subbed = this.loadSubbed();
+    this.materialSels = [];
+    if (!units.length) { this.renderError('暂无题目', '老师还没设置题目内容。'); return; }
+    // 如果从首页输码进来、名字已设好，跳过叫门页直接进看板
+    if (this.name) { this.renderBoard(); return; }
+    this.renderGate();
+  },
+  resolveCode(code, silent) {
+    TY.db.currentUid().then(() => TY.db.getBoardByCode(code)).then((b) => {
+      if (!b) {
+        if (silent) { toast('没找到这个课堂码，再核对一下？'); return; }
+        this.renderError('没找到这个互动', '请核对老师报的 6 位课堂码，或让老师重新下发二维码。');
+        return;
+      }
+      this.enterBoard(b);
+    }).catch((e) => {
+      if (silent) { toast('连接失败：' + (e && e.message || e)); return; }
+      this.renderError('连接失败', esc(e && e.message || e));
+    });
+  },
+  renderHome() {
+    const app = document.getElementById('app');
+    const saved = localStorage.getItem('ty_name') || '';
+    app.innerHTML = `
+      <div class="home-hero">
+        <div class="big">📲</div>
+        <h1>加入课堂互动</h1>
+        <p>老师正在投屏/直播，不方便展示二维码？<br>输入老师报出的 <b>6 位课堂码</b> 就能直接进入互动。</p>
+        <div class="field" style="text-align:left"><label>课堂码</label>
+          <input class="code-inp" id="join-code" placeholder="000000" inputmode="numeric" maxlength="6" autocomplete="one-time-code">
+        </div>
+        <div class="join-bar">
+          <div class="field"><label>你的称呼</label><input id="join-name" placeholder="昵称" value="${esc(saved)}" maxlength="12"></div>
+          <button class="btn btn-primary" style="margin-top:22px" onclick="S.joinByCode()">进入 →</button>
+        </div>
+      </div>
+      <div class="home-foot">没有课堂码？找老师要「学生链接」或扫大屏二维码即可。<br><b>TeacherYO</b> · 让每个人的想法一起贴上墙</div>`;
+    const codeInp = document.getElementById('join-code');
+    setTimeout(() => codeInp.focus(), 80);
+    codeInp.addEventListener('input', () => { codeInp.value = codeInp.value.replace(/\D/g, ''); });
+    codeInp.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') this.joinByCode(); });
+  },
+  joinByCode() {
+    const code = (document.getElementById('join-code').value || '').trim();
+    if (!/^\d{6}$/.test(code)) { toast('请输入老师报的 6 位数字课堂码'); return; }
+    const name = (document.getElementById('join-name').value || '').trim();
+    if (name) { this.name = name; localStorage.setItem('ty_name', name); }
+    this.resolveCode(code, false);
+  },
+  firstLegendColor(b) {
+    return 'yellow';
+  },
+  renderError(t, d) {
+    document.getElementById('app').innerHTML = `<div class="err-zone"><div style="font-size:46px">🙈</div><h2>${esc(t)}</h2><p class="muted" style="line-height:1.8">${esc(d)}</p>
+      <button class="btn btn-primary" style="margin-top:16px" onclick="location.reload()">重新进入</button></div>`;
+    this.stopPoll();
+  },
+  renderGate() {
+    const app = document.getElementById('app');
+    const b = this.board; const t = TYPES[b.type];
+    let title = b.title, desc = '';
+    if (b.type === 'material') title = (this.meta.material || {}).title;
+    desc = (b.type === 'material' && (this.meta.material || {}).desc) || '';
+    app.innerHTML = `
+      <div class="hero-mini name-gate">
+        <span class="hm-tag" style="background:${b.status === 'active' ? 'var(--ok-soft)' : '#fff'};color:${t.c}">${t.icon} ${t.name}</span>
+        <h1>${esc(title)}</h1>
+        ${desc ? `<div class="q-desc">${esc(desc)}</div>` : ''}
+        <div class="field" style="margin-top:16px"><label>先告诉大家怎么称呼你？</label>
+        <input id="my-name" placeholder="昵称（老师会在大屏上看到）" value="${esc(localStorage.getItem('ty_name') || '')}"></div>
+        <button class="btn btn-primary" onclick="S.enter()">进入，开始作答 →</button>
+      </div>
+      <div class="side-note" style="text-align:center">无需注册 · 提交后老师大屏实时可见</div>`;
+    setTimeout(() => document.getElementById('my-name').focus(), 80);
+  },
+  enter() {
+    const v = (document.getElementById('my-name').value || '').trim() || '匿名同学';
+    this.name = v; localStorage.setItem('ty_name', v);
+    // 材料学习：打开材料链接
+    if (this.board.type === 'material' && (this.meta.material || {}).url) {
+      window.open((this.meta.material || {}).url, '_blank');
+    }
+    this.renderBoard();
+  },
+
+  /* ================================================================
+   * 共享看板：学生提交后直接看到全班的实时结果
+   * ================================================================ */
+  async renderBoard() {
+    this.stopPoll();
+    const app = document.getElementById('app');
+    const b = this.board;
+    const { units, meta } = boardUnits(b);
+    // 拉取初始数据
+    try { this.boardRows = await TY.db.listSubmissions(b.id); }
+    catch (e) { this.boardRows = []; }
+    // 构建 HTML 骨架
+    app.innerHTML = this.buildBoardHTML(units, meta);
+    // 渲染每个单元的实时结果
+    this.renderAllUnits(units);
+    // 绑定输入区交互
+    this.bindInput();
+    // 启动轮询
+    this.startPoll();
+  },
+  buildBoardHTML(units, meta) {
+    const b = this.board; const t = TYPES[b.type];
+    let h = '';
+    // 头部
+    h += `<div class="hero-mini">
+      <span class="hm-tag" style="background:var(--ok-soft);color:${t.c}">${t.icon} ${t.name}</span>
+      <h1>${esc(b.title || t.name)}</h1>
+      <div class="stu-board-header"><span class="stu-live"><i></i>实时 · <span id="stu-total">${this.boardRows.length}</span> 条提交</span></div>`;
+    if (b.type === 'material' && meta.material) {
+      const m = meta.material;
+      h += `<div class="q-desc" style="margin-top:6px">材料：${esc(m.title)}</div>`;
+    }
+    h += `</div>`;
+    // 材料信息卡片
+    if (b.type === 'material' && meta.material) {
+      const m = meta.material;
+      const ic = m.kind === 'video' ? '🎬' : (m.kind === 'article' ? '📄' : '🔗');
+      h += `<div class="mat-head">
+        <span class="mat-ico">${ic}</span>
+        <div style="min-width:0"><div class="mat-title">${esc(m.title)}</div>
+        ${m.url ? `<div class="mat-url">${esc(m.url)}</div>` : ''}
+        ${m.desc ? `<div class="mat-desc">${esc(m.desc)}</div>` : ''}</div>
+        <a class="open-mat" href="${esc(m.url)}" target="_blank" rel="noopener">打开材料 ↗</a>
+      </div>`;
+    }
+    // 每个题单元的结果区
+    h += '<div id="stu-units">';
+    units.forEach((u, i) => {
+      const isNote = u.subType === 'note';
+      const count = subsOf(this.boardRows, u).length;
+      let tag = isNote ? '自由白板' : (b.type === 'material' ? '配套问题 ' + (i + 1) + ' · ' + TYPES[u.subType].name : TYPES[b.type].name);
+      h += `<div class="unit-card" id="unit-${i}">
+        <div class="unit-no" id="unit-no-${i}">${esc(tag)} · ${count} 条</div>
+        ${u.title ? '<h3>' + esc(u.title) + '</h3>' : ''}
+        <div class="unit-res" id="unit-res-${i}"></div>
+      </div>`;
+    });
+    h += '</div>';
+    // 输入区
+    h += '<div class="stu-input" id="stu-input-area"></div>';
+    return h;
+  },
+  renderAllUnits(units) {
+    units.forEach((u, i) => {
+      const container = document.getElementById('unit-res-' + i);
+      if (!container) return;
+      const unitRows = subsOf(this.boardRows, u);
+      if (u.subType === 'note') {
+        renderNotes(container, u, unitRows, {
+          canDel: false,
+          draggable: true,
+          resizable: true,
+          viewKey: 'sb:' + this.board.id + ':' + i,
+          canvasH: 540,
+          fullscreen: false,   // 学生端提交区在画布外，全屏会挡住输入框
+          onMove: (id, x, y) => {
+            const sub = this.boardRows.find((s) => s.id === id);
+            if (!sub) return;
+            const data = Object.assign({}, sub.data || {}, { px: x, py: y });
+            delete data.x; delete data.y;   // 迁到世界坐标，旧归一化字段作废
+            TY.db.updateSubmission(id, { data }).catch(() => { /* 静默 */ });
+          },
+          onResize: (id, w) => {
+            const sub = this.boardRows.find((s) => s.id === id);
+            if (!sub) return;
+            const data = Object.assign({}, sub.data || {}, { w });
+            TY.db.updateSubmission(id, { data }).catch(() => { /* 静默 */ });
+          }
+        });
+      }
+      else if (u.subType === 'choice') renderChoice(container, u, unitRows);
+      else if (u.subType === 'blank') renderBlank(container, u, unitRows);
+      else if (u.subType === 'cloud') renderCloud(container, u, unitRows);
+    });
+    // 更新计数
+    document.getElementById('stu-total').textContent = this.boardRows.length;
+    units.forEach((u, i) => {
+      const no = document.getElementById('unit-no-' + i);
+      if (!no) return;
+      const unitRows = subsOf(this.boardRows, u);
+      const prefix = no.textContent.split('·')[0];
+      no.textContent = prefix + '· ' + unitRows.length + ' 条';
+    });
+  },
+  /* 输入区：根据互动类型渲染不同的输入控件 */
+  bindInput() {
+    const area = document.getElementById('stu-input-area');
+    const b = this.board;
+    const units = this.units;
+    if (b.type === 'notes') {
+      // 便签墙：自由白板 —— 写内容 + 选颜色（纯色无标签），贴后可拖动
+      const colors = ['yellow', 'red', 'green', 'blue', 'purple'];
+      let h = `<div class="field"><label>选一个颜色</label>
+        <div class="legend-sel" id="stu-ls">${colors.map((color, i) => {
+          const c = TY_NOTE_COLORS[color] || TY_NOTE_COLORS.yellow;
+          return `<label id="slc-${i}" style="${i === 0 ? 'outline:3px solid var(--accent);outline-offset:1px' : ''}" onclick="S.selColor='${color}';document.querySelectorAll('#stu-ls label').forEach(x=>x.style.outline='');this.style.outline='3px solid var(--accent)';this.style.outlineOffset='1px'"><input type="radio" name="slg" value="${color}" ${i === 0 ? 'checked' : ''}><span class="sw" style="background:${c.bg}"></span></label>`;
+        }).join('')}</div></div>
+        <div class="field"><label>选一个形状</label>
+          <div class="shape-sel" id="stu-ss">${NOTE_SHAPES.map((s, i) =>
+            `<button type="button" class="shape-btn${i === 0 ? ' on' : ''}" data-s="${s.k}" onclick="S.selShape='${s.k}';document.querySelectorAll('#stu-ss .shape-btn').forEach(x=>x.classList.remove('on'));this.classList.add('on')">${s.icon}<span>${s.name}</span></button>`
+          ).join('')}</div></div>
+        <div class="field"><label>写下你的想法</label>
+          <textarea id="stu-note-text" placeholder="把想法写在便签上，贴到白板任意位置…" style="min-height:90px"></textarea></div>
+        <button class="btn btn-primary" style="width:100%;padding:13px" onclick="S.submitNoteFromBoard()">贴上便签 ✨</button>
+        <div class="side-note" style="text-align:center;margin-top:8px">贴上去后可拖动位置，拉右下角可调大小；白板可双指缩放/拖动</div>`;
+      area.innerHTML = h;
+      this.selColor = this.selColor || 'yellow';
+      this.selShape = this.selShape || 'square';
+      setTimeout(() => { const t = document.getElementById('stu-note-text'); if (t) t.focus(); }, 80);
+    } else if (b.type === 'choice') {
+      const u = units[0];
+      if (this.isSubmitted(0)) {
+        area.innerHTML = `<div class="stu-submitted">✅ 你已经提交过了 · 上方是全班实时结果</div>`;
+      } else {
+        let h = `<div class="opt-vote">${u.options.map((o, i) =>
+          `<div class="choice-opt" onclick="S.pickFromBoard(${i})"><span class="co-radio" id="sr-${i}"></span><span>${String.fromCharCode(65 + i)}. ${esc(o)}</span></div>`
+        ).join('')}</div>`;
+        if (u.multi) h += '<div class="multi-hint">可多选，再点一次取消</div>';
+        h += `<button class="btn btn-primary" style="width:100%;margin-top:12px;padding:13px" onclick="S.submitChoiceFromBoard()">提交 ✅</button>`;
+        area.innerHTML = h;
+      }
+    } else if (b.type === 'blank' || b.type === 'cloud') {
+      if (this.isSubmitted(0)) {
+        area.innerHTML = `<div class="stu-submitted">✅ 你已经提交过了 · 上方是全班实时结果</div>`;
+      } else {
+        const ph = b.type === 'cloud' ? '写一两个词，最多 3 个' : '写下你的回答…';
+        area.innerHTML = `<div class="field"><textarea id="stu-inp" placeholder="${ph}" style="min-height:90px"></textarea></div>
+          <button class="btn btn-primary" style="width:100%;padding:13px" onclick="S.submitTextFromBoard()">提交 ✅</button>`;
+        setTimeout(() => { const t = document.getElementById('stu-inp'); if (t) t.focus(); }, 80);
+      }
+    } else if (b.type === 'material') {
+      // 材料学习：每个配套问题独立输入
+      let h = '';
+      units.forEach((u, i) => {
+        if (this.isSubmitted(i)) {
+          h += `<div class="stu-submitted">✅ 第 ${i + 1} 题已提交</div>`;
+        } else {
+          h += `<div class="field" style="margin-top:10px"><label>第 ${i + 1} 题 · ${TYPES[u.subType].name}</label>`;
+          if (u.subType === 'choice') {
+            h += `<div class="opt-vote" id="stu-opts-${i}">${u.options.map((o, j) =>
+              `<div class="choice-opt" onclick="S.pickMaterialPart(${i},${j})"><span class="co-radio" id="smr-${i}-${j}"></span><span>${String.fromCharCode(65 + j)}. ${esc(o)}</span></div>`
+            ).join('')}</div>
+            <button class="btn btn-primary btn-sm" style="margin-top:6px;width:100%" onclick="S.submitMaterialPart(${i})">提交第 ${i + 1} 题</button>`;
+          } else {
+            h += `<input id="stu-mp-${i}" placeholder="写下你的回答…"><button class="btn btn-primary btn-sm" style="margin-top:6px;width:100%" onclick="S.submitMaterialPart(${i})">提交第 ${i + 1} 题</button>`;
+          }
+          h += `</div>`;
+        }
+      });
+      area.innerHTML = h || '<div class="stu-submitted">✅ 全部配套问题已提交 · 上方是实时结果</div>';
+    }
+  },
+
+  /* ---------- 提交方法 ---------- */
+  submitNoteFromBoard() {
+    const text = (document.getElementById('stu-note-text').value || '').trim();
+    if (!text) { toast('写点内容再贴吧'); return; }
+    const u = this.units[0];
+    // 自动找最空的位置落点：以「你当前看到的视口中心」为起点，避免便签叠在一起
+    const spot = findFreeSpot(this.boardRows.filter((r) => r.type === 'note'), TY._ncCenterLast);
+    TY.db.submit({ boardId: this.board.id, type: 'note', partIdx: u.qIdx, author: this.name, data: { text, color: this.selColor, shape: this.selShape || 'square', px: spot.x, py: spot.y, w: 170 } })
+      .then(() => {
+        toast('贴好啦，可拖动调整位置 ✨');
+        document.getElementById('stu-note-text').value = '';
+        this.refreshBoard();
+        setTimeout(() => { const t = document.getElementById('stu-note-text'); if (t) t.focus(); }, 60);
+      })
+      .catch((e) => toast(e.message));
+  },
+  pickFromBoard(i) {
+    const u = this.units[0];
+    const el = document.querySelectorAll('#stu-input-area .choice-opt')[i];
+    if (!el) return;
+    const radio = document.getElementById('sr-' + i);
+    if (u.multi) {
+      const at = this.choiceSel.indexOf(i);
+      if (at >= 0) { this.choiceSel.splice(at, 1); el.classList.remove('on'); if (radio) radio.classList.remove('on'); }
+      else { this.choiceSel.push(i); el.classList.add('on'); if (radio) radio.classList.add('on'); }
+    } else {
+      this.choiceSel = [i];
+      document.querySelectorAll('#stu-input-area .choice-opt').forEach((x, j) => {
+        x.classList.toggle('on', j === i);
+        const r = document.getElementById('sr-' + j); if (r) r.classList.toggle('on', j === i);
+      });
+    }
+  },
+  submitChoiceFromBoard() {
+    if (!this.choiceSel.length) { toast('请先选择一个选项'); return; }
+    const u = this.units[0];
+    TY.db.submit({ boardId: this.board.id, type: u.subType, partIdx: 0, author: this.name, data: { sel: this.choiceSel.slice() } })
+      .then(() => { this.markSubmitted(0); toast('提交成功 ✅'); this.refreshBoard(); })
+      .catch((e) => toast(e.message));
+  },
+  submitTextFromBoard() {
+    const inp = document.getElementById('stu-inp');
+    const text = (inp && inp.value || '').trim();
+    if (!text) { toast(this.board.type === 'cloud' ? '写一个词再提交吧' : '写点内容再提交吧'); return; }
+    const u = this.units[0];
+    TY.db.submit({ boardId: this.board.id, type: u.subType, partIdx: 0, author: this.name, data: { text } })
+      .then(() => { this.markSubmitted(0); toast('提交成功 ✅'); this.refreshBoard(); })
+      .catch((e) => toast(e.message));
+  },
+  pickMaterialPart(partIdx, optIdx) {
+    if (!this.materialSels) this.materialSels = [];
+    this.materialSels[partIdx] = [optIdx];
+    document.querySelectorAll(`#stu-opts-${partIdx} .choice-opt`).forEach((x, j) => {
+      x.classList.toggle('on', j === optIdx);
+      const r = document.getElementById('smr-' + partIdx + '-' + j); if (r) r.classList.toggle('on', j === optIdx);
+    });
+  },
+  submitMaterialPart(partIdx) {
+    const u = this.units[partIdx];
+    if (u.subType === 'choice') {
+      const sel = this.materialSels[partIdx];
+      if (!sel || !sel.length) { toast('请先选择一个选项'); return; }
+      TY.db.submit({ boardId: this.board.id, type: 'choice', partIdx, author: this.name, data: { sel: sel.slice() } })
+        .then(() => { this.markSubmitted(partIdx); toast('提交成功 ✅'); this.refreshBoard(); })
+        .catch((e) => toast(e.message));
+    } else {
+      const inp = document.getElementById('stu-mp-' + partIdx);
+      const text = (inp && inp.value || '').trim();
+      if (!text) { toast('写点内容再提交吧'); return; }
+      TY.db.submit({ boardId: this.board.id, type: u.subType, partIdx, author: this.name, data: { text } })
+        .then(() => { this.markSubmitted(partIdx); toast('提交成功 ✅'); this.refreshBoard(); })
+        .catch((e) => toast(e.message));
+    }
+  },
+
+  /* ---------- 轮询刷新 ---------- */
+  startPoll() {
+    this.stopPoll();
+    this.poll = setInterval(() => this.refreshBoard(), 3000);
+  },
+  stopPoll() { if (this.poll) { clearInterval(this.poll); this.poll = null; } },
+  async refreshBoard() {
+    if (!this.board) return;
+    if (TY._ncBusy) return;   // 正在拖动/缩放便签时不重绘，避免打断
+    try {
+      this.boardRows = await TY.db.listSubmissions(this.board.id);
+      const { units } = boardUnits(this.board);
+      this.renderAllUnits(units);
+      // 如果输入区需要刷新（如材料提交后重新渲染输入区）
+      if (this.board.type === 'material') {
+        const allDone = this.units.every((_, i) => this.isSubmitted(i));
+        if (allDone) {
+          document.getElementById('stu-input-area').innerHTML = '<div class="stu-submitted">✅ 全部配套问题已提交 · 上方是实时结果</div>';
+        } else {
+          this.bindInput();
+        }
+      }
+      if (this.board.type === 'choice' || this.board.type === 'blank' || this.board.type === 'cloud') {
+        if (this.isSubmitted(0)) {
+          const area = document.getElementById('stu-input-area');
+          if (area && !area.querySelector('.stu-submitted')) {
+            area.innerHTML = `<div class="stu-submitted">✅ 你已经提交过了 · 上方是全班实时结果</div>`;
+          }
+        }
+      }
+    } catch (e) { /* 静默失败 */ }
+  },
+
+  /* ---------- 已提交状态管理 ---------- */
+  loadSubbed() {
+    try { return JSON.parse(localStorage.getItem('ty_subbed_' + this.board.id) || '{}'); }
+    catch (e) { return {}; }
+  },
+  isSubmitted(partIdx) { return !!this.subbed[partIdx]; },
+  markSubmitted(partIdx) {
+    this.subbed[partIdx] = true;
+    localStorage.setItem('ty_subbed_' + this.board.id, JSON.stringify(this.subbed));
+  }
+};
+window.S = S;
+window.addEventListener('DOMContentLoaded', () => S.boot());
+</script>
+</body>
+</html>

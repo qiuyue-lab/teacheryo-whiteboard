@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>TeacherYO · 课堂互动设计</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<style>
+  .course-grid{margin-top:24px}
+  .sec-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:30px}
+  .stat-line{display:inline-flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+  .board-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .unit-card{background:var(--paper);border:2px solid var(--line);border-radius:16px;padding:16px 18px;margin-bottom:14px;box-shadow:3px 3px 0 rgba(28,25,23,.08)}
+  .unit-card h3{font-size:16px;font-weight:900;margin-bottom:6px;line-height:1.45}
+  .unit-no{color:var(--ink-3);font-size:11px;font-weight:800;margin-bottom:8px;letter-spacing:.02em}
+  .mat-head{display:flex;gap:12px;align-items:flex-start;background:#fff;border:2px solid var(--line);border-radius:16px;padding:14px 16px;margin-bottom:14px;box-shadow:3px 3px 0 rgba(28,25,23,.08)}
+  .mat-ico{font-size:26px;flex-shrink:0}
+  .mat-title{font-weight:900;font-size:15px;line-height:1.5}
+  .mat-url{font-size:11.5px;color:var(--ink-3);word-break:break-all;margin-top:4px}
+  .mat-desc{font-size:12.5px;color:var(--ink-2);margin-top:6px;line-height:1.7}
+  .open-mat{color:var(--accent-deep);font-weight:800;font-size:12.5px;white-space:nowrap;text-decoration:none;border:1.5px solid var(--accent);background:var(--accent-soft);padding:5px 12px;border-radius:999px;margin-left:auto}
+  .go-row{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0 4px}
+  .toolbar-sticky{position:sticky;top:60px;z-index:20;background:rgba(250,243,227,.94);backdrop-filter:blur(10px);padding:10px 0 12px;border-bottom:1.5px dashed var(--line-soft);margin-bottom:16px}
+  .toolbar-sticky .row1{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .toolbar-sticky h2{font-size:18px;font-weight:900;line-height:1.35}
+  .part-row{border:2px solid var(--line-soft);border-radius:13px;padding:12px 14px;margin-bottom:10px;background:#fff}
+  .part-row .part-head{display:flex;align-items:center;gap:8px;margin-bottom:8px;font-weight:900;font-size:12.5px}
+  .chips{display:flex;gap:8px;flex-wrap:wrap}
+  .chips label{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:800;border:1.5px solid var(--line);border-radius:999px;padding:5px 12px;cursor:pointer;background:#fff}
+  .chips label.on{background:var(--accent-soft);border-color:var(--accent)}
+  .chips input{display:none}
+  .empty-hero{margin:6px 0 0}
+  .code-chip{display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:900;background:#fff;border:2px solid var(--line);border-radius:999px;padding:6px 14px;box-shadow:2px 2px 0 rgba(28,25,23,.14);cursor:pointer;letter-spacing:.02em}
+  .code-chip b{font-size:17px;color:var(--accent-deep);font-family:'Montserrat',monospace;letter-spacing:.12em}
+  .code-chip:hover{background:var(--cream);transform:translate(-1px,-1px)}
+  .pub-code{background:#FFF8E7;border:2px solid var(--accent);border-radius:16px;padding:12px 14px 14px;text-align:center;box-shadow:3px 3px 0 rgba(28,25,23,.12);margin-bottom:14px}
+  .pub-code .pc-label{font-weight:900;font-size:12px;color:var(--ink-2)}
+  .pub-code .pc-label small{font-weight:700;opacity:.75}
+  .pub-code .pc-num{font-size:40px;font-weight:900;letter-spacing:.18em;color:var(--accent-deep);font-family:'Montserrat',monospace;line-height:1.25;margin:6px 0 2px;user-select:all}
+  .pub-code .pc-hint{font-size:10.5px;color:var(--ink-3);font-weight:700;line-height:1.6;margin-bottom:4px}
+  .pub-code .pc-url{font-size:10px;color:var(--ink-3);font-weight:600;word-break:break-all;margin-bottom:9px}
+  .modal-close{position:absolute;right:14px;top:14px;border:none;background:transparent;font-size:18px;font-weight:900;cursor:pointer;color:var(--ink-3);z-index:10;line-height:1;padding:4px 7px;border-radius:6px}
+  .modal-close:hover{background:var(--accent-soft,#FBE7C9);color:var(--ink)}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="logo" onclick="location.hash=''"><span class="mark-avatar"><img src="assets/avatar.png" alt=""></span><span>TeacherYO<small>课堂互动设计</small></span></div>
+  <div class="spacer"></div>
+  <span id="tb-right"></span>
+</div>
+
+<!-- ===== 首页 ===== -->
+<div id="view-home" style="display:none">
+  <div class="page">
+    <div class="hero">
+      <span class="deco ring" style="width:150px;height:150px;right:-40px;top:-50px;border:2px solid var(--line-soft)"></span>
+      <span class="deco circle" style="width:10px;height:10px;right:120px;bottom:30px;background:var(--accent)"></span>
+      <div class="float-note" style="--r:-4deg;right:56px;top:26px;background:#FFE08A;color:#7A5300;animation-delay:.2s"><small>第 3 小组</small>我们想研究 AI 批改！</div>
+      <div class="hero-text">
+        <span class="hero-kicker">课堂互动设计</span>
+        <h1>让每个人的想法，<br><em>一起贴上墙</em></h1>
+        <p>便签墙 · 选择题 · 填空题 · 词云 · 材料学习 —— 一键下发二维码，学生扫码即答，结果实时汇聚，按课程自动沉淀。</p>
+      </div>
+    </div>
+    <div class="sec-head">
+      <div><div class="page-title">我的课程</div><div class="page-sub">一门课 = 一学期的一份线性课堂流程，所有互动都沉淀在这里</div></div>
+      <button class="btn btn-primary" onclick="App.newCourse()">＋ 新建课程</button>
+    </div>
+    <div id="course-grid" class="course-grid"></div>
+  </div>
+</div>
+
+<!-- ===== 课程详情 ===== -->
+<div id="view-course" style="display:none">
+  <div class="page page-narrow">
+    <div class="course-head">
+      <button class="backchip" onclick="location.hash=''">← 全部课程</button>
+      <button class="backchip" id="btn-del-course" onclick="App.delCourse()">🗑 删除本课</button>
+    </div>
+    <div style="margin-top:10px"><div class="page-title" id="course-title"></div>
+      <div class="page-sub" id="course-sub"></div></div>
+    <div class="sec-head" style="margin-top:20px">
+      <div class="page-title" style="font-size:17px">这节课的流程</div>
+      <button class="btn btn-primary btn-sm" onclick="App.openNewBoard()">🚀 发起课堂互动</button>
+    </div>
+    <div id="act-list" class="act-list"></div>
+  </div>
+</div>
+
+<!-- ===== 互动大屏 ===== -->
+<div id="view-board" style="display:none">
+  <div class="page">
+    <div class="toolbar-sticky">
+      <div class="row1">
+        <button class="backchip" id="back-course" onclick="App.backToCourse()">← 本课</button>
+        <button class="backchip" onclick="location.hash=''">🏠 首页</button>
+        <h2 id="bt-title">-</h2>
+        <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap" id="bt-actions"></div>
+      </div>
+    </div>
+    <div class="go-row">
+      <button class="btn btn-primary btn-sm" onclick="App.publish()">📱 下发二维码</button>
+      <span class="code-chip" id="bt-code" style="display:none" title="点击复制课堂码"></span>
+      <span class="pill" id="bt-status"></span>
+      <span class="side-note" id="bt-live"></span>
+    </div>
+    <div id="board-body" style="margin-top:16px"></div>
+  </div>
+</div>
+
+<!-- ===== 新建课程弹窗 ===== -->
+<div id="m-course" class="mask" style="display:none">
+  <div class="modal" style="width:440px">
+    <h3><span class="m-ico">📚</span>新建课程</h3>
+    <div class="m-sub">课程是数据的归档单位。一学期一门课，所有互动都按顺序存在课下面。</div>
+    <div class="field"><label>课程名称</label><input id="c-name" placeholder="例如：AI+教育开放麦 · 第3期"></div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="App.hide('m-course')">取消</button><button class="btn btn-primary" onclick="App.saveCourse()">创建课程</button></div>
+  </div>
+</div>
+
+<!-- ===== 发起互动（两步） ===== -->
+<div id="m-board" class="mask" style="display:none">
+  <div class="modal" style="width:640px">
+    <h3><span class="m-ico">🚀</span>发起课堂互动</h3>
+    <div class="m-sub" id="mb-sub"></div>
+    <div id="mb-step1">
+      <div class="type-cards" id="mb-types"></div>
+      <div class="modal-foot" style="margin-top:16px">
+        <button class="btn btn-ghost" onclick="App.hide('m-board')">取消</button>
+        <button class="btn btn-primary" id="mb-next" onclick="App.boardStep(2)">下一步：填写内容 →</button>
+      </div>
+    </div>
+    <div id="mb-step2" style="display:none">
+      <div class="step-crumbs" style="cursor:pointer" onclick="App.boardStep(1)">← 重新选择形式</div>
+      <div class="field"><label>互动标题（可选）</label><input id="b-title" placeholder="例如：第 3 步 · 开放麦投票"></div>
+      <div id="b-config"></div>
+      <div class="modal-foot">
+        <button class="btn btn-ghost" onclick="App.hide('m-board')">取消</button>
+        <button class="btn btn-primary" onclick="App.createBoard()">✓ 确定，发布互动</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 下发二维码 ===== -->
+<div id="m-pub" class="mask" style="display:none">
+  <div class="modal" style="width:780px;position:relative">
+    <button type="button" class="modal-close" onclick="App.hide('m-pub')" title="关闭">✕</button>
+    <h3><span class="m-ico">📱</span>下发到学生端</h3>
+    <div class="m-sub">投屏二维码，学生微信扫码即答（无需注册）。右侧是该互动目前的实时汇总。</div>
+    <div class="pub-wrap">
+      <div class="pub-left">
+        <!-- ① 二维码 ← 主入口 -->
+        <div class="qr-box"><img id="qr-img" alt="二维码"></div>
+        <div class="qr-link" id="qr-link"></div>
+        <div class="qr-hint">在微信里扫码打开，或复制链接发给学生</div>
+        <button class="btn btn-ghost btn-sm" style="margin-top:10px" onclick="App.copyLink()">📋 复制链接</button>
+        <!-- ② 课堂码 ← 备用（紧凑卡片，直播/语音场景） -->
+        <div class="pub-code" id="pub-code" style="display:none;margin-top:10px;padding:8px 12px;border-radius:12px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-weight:800;font-size:12px;color:var(--ink-3)">🎯 课堂码</span>
+            <b id="pc-num" style="font-size:22px;font-weight:900;letter-spacing:.12em;color:var(--accent-deep);font-family:'Montserrat',monospace;user-select:all"></b>
+            <button class="btn btn-ghost btn-sm" onclick="App.copyCode()" style="font-size:11px;padding:3px 10px;margin-left:auto">复制</button>
+          </div>
+          <div style="font-size:10px;color:var(--ink-3);font-weight:600;margin-top:3px">学生打开学生端输入课堂码也可进入（直播 / 语音场景备用）</div>
+        </div>
+      </div>
+      <div class="pub-right" id="pub-live"></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="vendor/cloudbase.full.js"></script>
+<script src="config.js"></script>
+<script src="config.local.js"></script>
+<script src="js/store.local.js"></script>
+<script src="js/common.js"></script>
+<script src="js/db.js"></script>
+<script>
+/* ================= Teacher App ================= */
+let toastTimer = null;
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 2600);
+}
+
+/* 顶部模式徽标：让使用者一眼看出数据存在哪里 */
+function modeBadge() {
+  return TY.isLocal
+    ? '<span class="ver" title="数据保存在本机浏览器里，换设备或换浏览器就看不到了">本地模式</span>'
+    : '<span class="ver">云端同步</span>';
+}
+
+const App = {
+  ctx: {},            // { course, boards, board }
+  poll: null,
+  boardRows: [],
+
+  /* ---------- 基础 ---------- */
+  show(id) {
+    const el = document.getElementById(id);
+    el.style.display = el.classList.contains('mask') ? 'flex' : 'block';
+  },
+  hide(id) { document.getElementById(id).style.display = 'none'; },
+  go(courseId, boardId) {
+    const p = [];
+    if (courseId) p.push('c=' + courseId);
+    if (boardId) p.push('b=' + boardId);
+    location.hash = p.join('&');
+  },
+  parseHash() {
+    const h = location.hash.replace(/^#/, '');
+    const o = {};
+    h.split('&').forEach((s) => { const [k, v] = s.split('='); if (k) o[k] = decodeURIComponent(v || ''); });
+    return o;
+  },
+  boot() {
+    this.ensureReady().then(() => {
+      this.router();
+      window.addEventListener('hashchange', () => this.router());
+    }).catch((e) => {
+      document.body.innerHTML = `<div class="page"><div class="card" style="padding:30px"><h1 style="font-weight:900">连接失败</h1><p class="muted" style="margin-top:10px">${esc(e && e.message || e)}</p><p class="muted" style="margin-top:6px">请检查 config.js 里的 envId 是否填对，以及云开发控制台是否已开启「匿名登录」。</p></div></div>`;
+    });
+  },
+  async ensureReady() { await TY.db.currentUid(); },
+
+  async router() {
+    const { c, b } = this.parseHash();
+    this.stopPoll();
+    this.hide('m-pub'); this.hide('m-board'); this.hide('m-course');
+    ['view-home', 'view-course', 'view-board'].forEach((v) => this.hide(v));
+    document.getElementById('tb-right').innerHTML = '';
+    if (b && c) return this.viewBoard(c, b);
+    if (c) return this.viewCourse(c);
+    return this.viewHome();
+  },
+
+  /* ============ 首页 ============ */
+  async viewHome() {
+    this.show('view-home');
+    document.getElementById('tb-right').innerHTML = modeBadge();
+    const g = document.getElementById('course-grid');
+    g.innerHTML = '<div class="loading-zone">正在读取' + (TY.isLocal ? '本地' : '云端') + '课程…</div>';
+    try {
+      const courses = await TY.db.listCourses();
+      if (!courses.length) { g.innerHTML = `<div class="empty"><span class="big">🎈</span>还没有课程<br><br><button class="btn btn-primary" onclick="App.newCourse()">＋ 新建第一门课</button></div>`; return; }
+      g.innerHTML = '';
+      courses.forEach((c, i) => {
+        const el = document.createElement('div'); el.className = 'course-card';
+        el.onclick = () => this.go(c.id);
+        el.innerHTML = `
+          <button class="card-del" style="top:10px;left:10px" title="删除课程" onclick="event.stopPropagation();App.askDelCourse('${c.id}')">🗑</button>
+          <div class="cc-cover" style="background:${COVERS[i % COVERS.length]}">
+            ${c.cover ? `<img src="${esc(c.cover)}">` : ''}
+            <span class="cc-emoji">${esc(c.emoji || '📘')}</span>
+          </div>
+          <div class="cc-body"><h3>${esc(c.name)}</h3><div class="cc-meta">创建于 ${fmtTime(c.created_at)}</div>
+          <div class="cc-stats"><span>🎒 点击进入本课</span></div></div>`;
+        g.appendChild(el);
+      });
+    } catch (e) { g.innerHTML = `<div class="empty">读取失败：${esc(e.message)}<br>请打开控制台看详细报错</div>`; }
+  },
+  newCourse() { document.getElementById('c-name').value = ''; this.show('m-course'); setTimeout(() => document.getElementById('c-name').focus(), 60); },
+  async saveCourse() {
+    const name = document.getElementById('c-name').value.trim();
+    if (!name) { toast('请输入课程名称'); return; }
+    try {
+      const id = await TY.db.createCourse({ name, emoji: EMOJIS[Math.floor(Math.random() * EMOJIS.length)] });
+      this.hide('m-course'); this.go(id); toast('课程已创建 🎉');
+    } catch (e) { toast('创建失败：' + e.message); }
+  },
+  async askDelCourse(id) {
+    if (!confirm('确定删除这门课？\n\n课程下的所有互动和学生提交会一起删除，且无法恢复。')) return;
+    try { await TY.db.deleteCourse(id); toast('课程已删除'); location.hash = ''; } catch (e) { toast('删除失败：' + e.message); }
+  },
+
+  /* ============ 课程详情 ============ */
+  async viewCourse(cid) {
+    this.show('view-course');
+    document.getElementById('tb-right').innerHTML = modeBadge();
+    try {
+      const course = await TY.db.getCourse(cid);
+      const boards = await TY.db.listBoards(cid);
+      this.ctx.course = course; this.ctx.boards = boards;
+      if (!course) { location.hash = ''; return; }
+      document.getElementById('course-title').textContent = `${course.emoji || '📘'} ${course.name}`;
+      const live = boards.filter((b) => b.status === 'active').length;
+      document.getElementById('course-sub').textContent = `共 ${boards.length} 个互动 · ${live ? live + ' 个进行中' : '均已归档'} · 全部按顺序沉淀在本课`;
+      document.getElementById('btn-del-course').style.display = boards.length ? 'inline-flex' : 'inline-flex';
+      const list = document.getElementById('act-list');
+      if (!boards.length) { list.innerHTML = `<div class="empty"><span class="big">🎈</span>这节课还没有互动<br><br><button class="btn btn-primary" onclick="App.openNewBoard()">🚀 发起第 1 个课堂互动</button></div>`; return; }
+      list.innerHTML = '';
+      boards.forEach((b, i) => {
+        const t = TYPES[b.type];
+        const stat = this.statOf(b);
+        const el = document.createElement('div'); el.className = 'act-row';
+        el.onclick = () => this.go(cid, b.id);
+        el.innerHTML = `
+          <span class="step-no">${i + 1}</span>
+          <div class="act-row-inner">
+            <div class="ar-top">
+              <span class="ac-mode" style="background:${b.status === 'active' ? '#FFF' : '#F0EBDF'};color:${t.c}">${t.icon} ${t.name}</span>
+              <span class="ar-step">第 ${i + 1} 步</span>
+              <span class="pill ${b.status === 'active' ? 'pill-live' : 'pill-archived'}">${b.status === 'active' ? '进行中' : '已归档'}</span>
+            </div>
+            <h4>${esc(b.title || t.name)}</h4>
+            <div class="ar-sum">${this.summaryOf(b)}</div>
+            <div class="ar-foot">${stat}</div>
+          </div>
+          <div class="ar-actions">
+            ${i > 0 ? `<button title="上移一步" onclick="event.stopPropagation();App.move('${cid}','${b.id}',-1)">↑</button>` : ''}
+            ${i < boards.length - 1 ? `<button title="下移一步" onclick="event.stopPropagation();App.move('${cid}','${b.id}',1)">↓</button>` : ''}
+            <button class="del" title="删除" onclick="event.stopPropagation();App.delOneBoard('${cid}','${b.id}')">🗑</button>
+          </div>`;
+        list.appendChild(el);
+      });
+    } catch (e) { document.getElementById('act-list').innerHTML = `<div class="empty">读取失败：${esc(e.message)}</div>`; }
+  },
+  summaryOf(b) {
+    const cfg = b.config || {};
+    if (b.type === 'notes') { const a = noteAnchorLabels(cfg); return a.length ? '中心关键词：' + a.join(' / ') : '自由白板 · 随意贴'; }
+    if (b.type === 'material') return `材料：${((cfg.material || {}).title || '') || ''} · ${(cfg.parts || []).length} 个配套问题`;
+    return cfg.question || '';
+  },
+  statOf(b) {
+    return '⏱ ' + fmtTime(b.created_at);
+  },
+  async move(cid, bid, dir) {
+    try { await TY.db.moveBoard(bid, cid, dir); toast('顺序已调整'); this.viewCourse(cid); } catch (e) { toast('操作失败：' + e.message); }
+  },
+  delOneBoard(cid, bid) {
+    if (!confirm('确定删除这个互动？所有学生提交会一起删除，且无法恢复。')) return;
+    TY.db.deleteBoard(bid).then(() => { toast('已删除'); this.go(cid); }).catch((e) => toast(e.message));
+  },
+  async delCourse() {
+    if (!this.ctx.course) return;
+    this.askDelCourse(this.ctx.course.id);
+  },
+  backToCourse() { const { c } = this.parseHash(); if (c) this.go(c); },
+
+  /* ============ 发起互动 ============ */
+  newType: 'choice',
+  async openNewBoard() {
+    this.boardStep(1);
+    this.show('m-board');
+    document.getElementById('b-title').value = '';
+  },
+  boardStep(step) {
+    this.show('mb-step' + step);
+    this.hide('mb-step' + (step === 1 ? 2 : 1));
+    if (step === 1) {
+      const box = document.getElementById('mb-types'); box.innerHTML = '';
+      const keys = ['notes', 'choice', 'blank', 'cloud', 'material'];
+      keys.forEach((k) => {
+        const t = TYPES[k];
+        const el = document.createElement('div'); el.className = 'type-card' + (k === this.newType ? ' on' : '');
+        el.innerHTML = `<span class="tc-icon">${t.icon}</span><b>${t.name}</b><span>${t.tip}</span>`;
+        el.onclick = () => {
+          this.newType = k;
+          [...box.children].forEach((x) => x.classList.remove('on'));
+          el.classList.add('on');
+          this.boardStep(2);   // 选完直接进入内容填写
+        };
+        box.appendChild(el);
+      });
+      document.getElementById('mb-sub').textContent = '先选一种互动形式，再进入内容设置';
+    } else {
+      document.getElementById('mb-sub').textContent = '填写「' + TYPES[this.newType].name + '」的内容';
+      this.renderConfig();
+    }
+  },
+  renderConfig() {
+    const host = document.getElementById('b-config'); host.innerHTML = '';
+    const T = TYPES[this.newType];
+    const row = (label, html) => `<div class="field"><label>${label}</label>${html}</div>`;
+    if (this.newType === 'notes') {
+      host.innerHTML =
+        row('中心关键词（可选，每行一个，作为白板锚点）', `<textarea id="cfg-qs" placeholder="例如：&#10;AI 批改&#10;AI 出题&#10;AI 答疑&#10;留空 = 完全自由白板"></textarea>`);
+    } else if (this.newType === 'choice') {
+      host.innerHTML =
+        row('题目', `<input id="cfg-q" placeholder="例如：下学期最想先用 AI 做哪件事？">`) +
+        `<div class="field"><label>选项（每行一个，最多 6 个）</label><textarea id="cfg-opts" rows="5" placeholder="AI 批改作业&#10;AI 出题&#10;AI 答疑助手"></textarea></div>` +
+        `<div class="chips"><label><input type="checkbox" id="cfg-multi"><span>支持多选</span></label></div>`;
+    } else if (this.newType === 'blank') {
+      host.innerHTML = row('题目', `<input id="cfg-q" placeholder="例如：用一个词形容你对 AI 课堂的期待">`);
+    } else if (this.newType === 'cloud') {
+      host.innerHTML = row('请大家贡献的词', `<input id="cfg-q" placeholder="例如：一句话讲你最想了解的方向">`);
+    } else { // material
+      host.innerHTML =
+        `<div class="field"><label>材料形式</label><select id="cfg-kind"><option value="article">📄 文章链接</option><option value="video">🎬 视频链接</option><option value="link">🔗 其他链接</option></select></div>` +
+        row('材料标题', `<input id="cfg-mt" placeholder="例如：当 Flinga 走进课堂">`) +
+        row('材料链接', `<input id="cfg-mu" placeholder="https://mp.weixin.qq.com/... 或视频链接">`) +
+        row('阅读提示（可选）', `<input id="cfg-md" placeholder="先看完材料，再回答下面的问题">`) +
+        `<div class="field"><label>配套问题（每个问题独立作答）</label><div id="parts"></div><button class="btn btn-ghost btn-sm" onclick="App.addPart()">＋ 添加一个问题</button></div>`;
+      this.parts = [];
+      this.addPart();
+      this.addPart();
+    }
+    this._bindChips();
+  },
+  _bindChips() {
+    document.querySelectorAll('.chips label').forEach((l) => {
+      const inp = l.querySelector('input');
+      const sync = () => l.classList.toggle('on', inp.checked);
+      inp.addEventListener('change', sync); sync();
+    });
+  },
+  parts: [],
+  addPart() {
+    const wrap = document.createElement('div'); wrap.className = 'part-row';
+    const idx = this.parts.length;
+    this.parts.push({ ptype: 'choice', question: '', options: '', multi: false });
+    const self = this;
+    const sync = () => { wrap.innerHTML = `
+      <div class="part-head">第 ${idx + 1} 题
+        <select onchange="App.parts[${idx}].ptype=this.value;App.parts[${idx}].options='';App.refreshPart(${idx})" style="margin-left:auto;border:1.5px solid var(--line);border-radius:9px;padding:3px 8px;font-size:12.5px;background:#fff">
+          <option value="choice" ${self.parts[idx].ptype === 'choice' ? 'selected' : ''}>选择题</option>
+          <option value="blank" ${self.parts[idx].ptype === 'blank' ? 'selected' : ''}>填空题</option>
+          <option value="cloud" ${self.parts[idx].ptype === 'cloud' ? 'selected' : ''}>词云</option>
+        </select>
+        <span style="cursor:pointer;color:var(--bad);font-size:13px" onclick="App.parts.splice(${idx},1);document.getElementById('parts').removeChild(document.getElementById('part-${idx}'));document.getElementById('parts').querySelectorAll('.part-row').forEach((r,i)=>App.renumPart(r,i))">✕</span>
+      </div>
+      <div class="field" style="margin-bottom:8px"><input placeholder="题目" value="${esc(self.parts[idx].question)}" oninput="App.parts[${idx}].question=this.value"></div>
+      ${self.parts[idx].ptype === 'choice'
+        ? `<div class="field" style="margin-bottom:8px"><input placeholder="选项，逗号分隔，例如：A方案,B方案,C方案" value="${esc(self.parts[idx].options)}" oninput="App.parts[${idx}].options=this.value"></div>`
+        : ''}`;
+      document.getElementById('parts').insertBefore(wrap, null);
+    };
+    wrap.id = 'part-' + idx; sync();
+    document.getElementById('parts').appendChild(wrap);
+    document.getElementById('parts').querySelectorAll('.part-row').forEach((r, i) => this.renumPart(r, i));
+  },
+  renumPart(row, i) { row.id = 'part-' + i; },
+  refreshPart(idx) {
+    // 重绘该题行
+    const row = document.getElementById('part-' + idx);
+    const p = this.parts[idx];
+    row.innerHTML = `
+      <div class="part-head">第 ${idx + 1} 题
+        <select onchange="App.parts[${idx}].ptype=this.value;App.refreshPart(${idx})" style="margin-left:auto;border:1.5px solid var(--line);border-radius:9px;padding:3px 8px;font-size:12.5px;background:#fff">
+          <option value="choice" ${p.ptype === 'choice' ? 'selected' : ''}>选择题</option>
+          <option value="blank" ${p.ptype === 'blank' ? 'selected' : ''}>填空题</option>
+          <option value="cloud" ${p.ptype === 'cloud' ? 'selected' : ''}>词云</option>
+        </select>
+        <span style="cursor:pointer;color:var(--bad)" onclick="App.delPart(${idx})">✕</span>
+      </div>
+      <div class="field" style="margin-bottom:8px"><input placeholder="题目" value="${esc(p.question)}" oninput="App.parts[${idx}].question=this.value"></div>
+      ${p.ptype === 'choice' ? `<div class="field" style="margin-bottom:8px"><input placeholder="选项，逗号分隔" value="${esc(p.options)}" oninput="App.parts[${idx}].options=this.value"></div>` : ''}`;
+  },
+  delPart(idx) {
+    this.parts.splice(idx, 1);
+    const partsEl = document.getElementById('parts');
+    partsEl.removeChild(document.getElementById('part-' + idx));
+    partsEl.querySelectorAll('.part-row').forEach((r, i) => { r.id = 'part-' + i; });
+  },
+  async createBoard() {
+    const cfg = {};
+    let title = document.getElementById('b-title').value.trim();
+    const t = this.newType;
+    const v = (id) => (document.getElementById(id) || {}).value || '';
+    try {
+      if (t === 'notes') {
+        const qs = txtRows(v('cfg-qs'));
+        cfg.anchors = qs.map((label, i) => ({ id: 'a' + i, label }));
+        if (!title) title = '便签墙 · ' + (qs[0] || '自由表达');
+      } else if (t === 'choice') {
+        const q = v('cfg-q').trim(); const opts = txtRows(v('cfg-opts'));
+        if (!q) throw new Error('请填写题目'); if (opts.length < 2) throw new Error('至少 2 个选项');
+        cfg.question = q; cfg.options = opts;
+        const multi = !!document.getElementById('cfg-multi');
+        cfg.multi = multi;
+        if (!title) title = '选择 · ' + q.slice(0, 18);
+      } else if (t === 'blank') {
+        const q = v('cfg-q').trim(); if (!q) throw new Error('请填写题目');
+        cfg.question = q; if (!title) title = '填空 · ' + q.slice(0, 18);
+      } else if (t === 'cloud') {
+        const q = v('cfg-q').trim(); if (!q) throw new Error('请填写题目');
+        cfg.question = q; if (!title) title = '词云 · ' + q.slice(0, 18);
+      } else if (t === 'material') {
+        const mt = v('cfg-mt').trim(); const mu = v('cfg-mu').trim();
+        if (!mt) throw new Error('请填写材料标题'); if (!mu) throw new Error('请填写材料链接');
+        cfg.material = { kind: v('cfg-kind'), title: mt, url: mu, desc: v('cfg-md').trim() };
+        const parts = [];
+        this.parts.forEach((p) => {
+          const question = (p.question || '').trim(); if (!question) return;
+          if (p.ptype === 'choice') {
+            const opts = p.options.split(/[,，]/).map((s) => s.trim()).filter(Boolean);
+            if (opts.length < 2) return;
+            parts.push({ ptype: 'choice', question, options: opts, multi: false });
+          } else parts.push({ ptype: p.ptype, question, options: [], multi: false });
+        });
+        if (!parts.length) throw new Error('请至少添加一个有内容的配套问题');
+        cfg.parts = parts;
+        if (!title) title = '材料学习 · ' + mt.slice(0, 18);
+      }
+      const cid = this.parseHash().c;
+      const { id, step, code } = await TY.db.createBoard({ courseId: cid, type: t, title, config: cfg });
+      this.hide('m-board');
+      toast(`已发布为第 ${step} 步 🎉 课堂码 ${fmtCode(code)}`);
+      this.go(cid, id);
+    } catch (e) { toast(e.message || '保存失败'); }
+  },
+
+  /* ============ 互动大屏 ============ */
+  async viewBoard(cid, bid) {
+    this.show('view-board');
+    document.getElementById('tb-right').innerHTML = modeBadge();
+    this.ctx = { cid, bid };
+    document.getElementById('back-course').style.display = 'inline-flex';
+    try {
+      const course = await TY.db.getCourse(cid);
+      const board = await TY.db.getBoard(bid);
+      if (!board) { toast('互动不存在'); location.hash = 'c=' + cid; return; }
+      this.ctx.course = course; this.ctx.board = board;
+      this.renderBoardHead();
+      this.refreshBoard();
+      this.startPoll();
+    } catch (e) { document.getElementById('board-body').innerHTML = `<div class="empty">加载失败：${esc(e.message)}</div>`; }
+  },
+  renderBoardHead() {
+    const b = this.ctx.board, c = this.ctx.course;
+    const t = TYPES[b.type];
+    document.getElementById('bt-title').textContent = b.title || t.name;
+    document.getElementById('bt-status').innerHTML = `<span class="pill ${b.status === 'active' ? 'pill-live' : 'pill-archived'}">${b.status === 'active' ? '● 进行中' : '已归档'}</span>`;
+    const codeChip = document.getElementById('bt-code');
+    if (b.code) {
+      codeChip.style.display = 'inline-flex';
+      codeChip.innerHTML = `🔢 课堂码 <b>${fmtCode(b.code)}</b>`;
+      codeChip.onclick = () => this.copyCode();
+    } else codeChip.style.display = 'none';
+    document.getElementById('board-body').innerHTML = '<div class="loading-zone">同步中…</div>';
+    const act = document.getElementById('bt-actions');
+    act.innerHTML = '';
+    const mk = (label, cls, fn) => { const x = document.createElement('button'); x.className = 'btn ' + cls + ' btn-sm'; x.textContent = label; x.onclick = fn; act.appendChild(x); };
+    mk('📱 下发', 'btn-primary', () => this.publish());
+    mk('📄 导出', 'btn-ghost', () => this.exportText());
+    if (b.status === 'active') mk('⏹ 结束互动', 'btn-danger', () => this.endBoard());
+    else mk('▶ 重新开启', 'btn-ok', () => this.reopenBoard());
+    mk('🗑 删除', 'btn-danger', () => this.delOneBoard(c.id, b.id));
+  },
+  async refreshBoard(silent) {
+    if (!this.ctx.bid) return;
+    if (silent && TY.noteUiBusy && TY.noteUiBusy()) return; // 正在拖拽/输入时不重绘，避免打断
+    try {
+      const [board, rows] = await Promise.all([TY.db.getBoard(this.ctx.bid), TY.db.listSubmissions(this.ctx.bid)]);
+      this.ctx.board = board; this.boardRows = rows;
+      if (!silent) this.renderBoardHead();
+      this.renderBoardBody();
+    } catch (e) { if (!silent) document.getElementById('board-body').innerHTML = `<div class="empty">刷新失败：${esc(e.message)}</div>`; }
+  },
+  renderBoardBody() {
+    const b = this.ctx.board; if (!b) return;
+    const { units, meta } = boardUnits(b);
+    const total = this.boardRows.length;
+    const body = document.getElementById('board-body');
+    body.innerHTML = `<div class="side-note" style="margin-bottom:14px;display:flex;gap:10px;align-items:center"><span class="live-dot"></span><b style="color:var(--ok)">实时 · ${total} 条提交</b></div>`;
+    if (meta && meta.material) {
+      const m = meta.material;
+      const ic = m.kind === 'video' ? '🎬' : (m.kind === 'article' ? '📄' : '🔗');
+      const hd = document.createElement('div'); hd.className = 'mat-head';
+      hd.innerHTML = `<span class="mat-ico">${ic}</span><div style="min-width:0"><div class="mat-title">${esc(m.title)}</div>${m.url ? `<div class="mat-url">${esc(m.url)}</div>` : ''}${m.desc ? `<div class="mat-desc">${esc(m.desc)}</div>` : ''}</div>
+        <a class="open-mat" href="${esc(m.url)}" target="_blank" rel="noopener">打开材料 ↗</a>`;
+      body.appendChild(hd);
+    }
+    units.forEach((u, i) => {
+      const card = document.createElement('div'); card.className = 'unit-card';
+      const rows = subsOf(this.boardRows, u);
+      let tag = '题目';
+      if (b.type === 'notes') tag = '自由白板';
+      else if (b.type === 'material') tag = '配套问题 ' + (i + 1) + ' · ' + TYPES[u.subType === 'note' ? 'notes' : u.subType].name;
+      else tag = TYPES[b.type].name;
+      card.innerHTML = `<div class="unit-no">${esc(tag)} · ${rows.length} 条</div>${u.title ? '<h3>' + esc(u.title) + '</h3>' : ''}`;
+      const res = document.createElement('div'); res.className = 'unit-res';
+      if (u.subType === 'note') {
+        const active = b.status === 'active';
+        if (active) {
+          const bar = document.createElement('div'); bar.className = 'note-arrange';
+          bar.innerHTML = '<span class="ar-label">一键整理</span>'
+            + '<button class="ar-btn" data-ar="anchor" title="把便签聚到它提到的中心关键词周围">🎯 按关键词聚拢</button>'
+            + '<button class="ar-btn" data-ar="like" title="按点赞数排布">👍 按点赞排序</button>'
+            + '<button class="ar-btn" data-ar="time" title="按贴出时间排布">🕒 按时间排序</button>'
+            + '<button class="ar-btn" data-ar="color" title="按颜色分区">🎨 按颜色分组</button>'
+            + '<button class="ar-btn" data-ar="shape" title="按形状分区">🔷 按形状分组</button>'
+            + '<button class="ar-btn" data-ar="scatter" title="重新撒开">🎲 打散</button>';
+          res.appendChild(bar);
+          bar.querySelectorAll('[data-ar]').forEach((btn) => { btn.onclick = () => this.arrangeNotes(u, btn.dataset.ar); });
+          res.__bar = bar;
+        }
+        const vp = renderNotes(res, u, rows, {
+          canDel: active,
+          draggable: active,
+          resizable: active,
+          viewKey: 'tb:' + b.id + ':' + i,
+          canvasH: 660,
+          anchorEditable: active && !!(u.anchors && u.anchors.length),
+          onAnchorMove: (id, x, y) => this.moveAnchor(u, id, x, y),
+          onMove: (id, x, y) => {
+            const sub = this.boardRows.find((s) => s.id === id);
+            if (!sub) return;
+            const data = Object.assign({}, sub.data || {}, { px: x, py: y });
+            delete data.x; delete data.y;   // 迁到世界坐标，旧归一化字段作废
+            TY.db.updateSubmission(id, { data }).catch((e) => toast(e.message));
+          },
+          onResize: (id, w) => {
+            const sub = this.boardRows.find((s) => s.id === id);
+            if (!sub) return;
+            const data = Object.assign({}, sub.data || {}, { w });
+            TY.db.updateSubmission(id, { data }).catch((e) => toast(e.message));
+          },
+          bind: (op, id) => {
+            const sub = this.boardRows.find((s) => s.id === id);
+            if (!sub) return;
+            if (op === 'like') TY.db.toggleLike(sub).then(() => this.refreshBoard(true)).catch((e) => toast(e.message));
+            else TY.db.removeSubmission(id).then(() => this.refreshBoard(true)).catch((e) => toast(e.message));
+          }
+        });
+        if (active && vp && vp.viewport) {
+          // 先插回卡片；若当前处于全屏，renderNotes 的还原逻辑会在下一帧把它搬进白板浮层
+          if (res.__bar) res.insertBefore(res.__bar, res.firstChild);
+          vp.viewport.appendChild(this.buildNoteDock());
+        }
+      } else if (u.subType === 'choice') renderChoice(res, u, rows);
+      else if (u.subType === 'blank') renderBlank(res, u, rows);
+      else if (u.subType === 'cloud') renderCloud(res, u, rows);
+      card.appendChild(res);
+      body.appendChild(card);
+    });
+    if (!units.length) body.innerHTML += '<div class="empty">这个互动还没有题目</div>';
+  },
+  /* ---------- 便签白板：一键整理 / 锚点预设 / 老师参与 ---------- */
+  noteRows() { return (this.boardRows || []).filter((r) => r.type === 'note'); },
+  async arrangeNotes(unit, mode) {
+    const rows = this.noteRows();
+    if (!rows.length) { toast('还没有便签可以整理'); return; }
+    const plan = arrangeLayout(mode, rows, unit.anchors || [], TY._ncCenterLast);
+    if (!plan.length) { toast('没有可整理的便签'); return; }
+    toast('整理中…');
+    try {
+      for (let i = 0; i < plan.length; i++) {
+        const p = plan[i];
+        const sub = rows.find((r) => r.id === p.id);
+        if (!sub) continue;
+        const data = Object.assign({}, sub.data || {}, { px: p.x, py: p.y });
+        delete data.x; delete data.y;
+        await TY.db.updateSubmission(p.id, { data });
+      }
+      await this.refreshBoard(true);
+      // 整理完自动「适应内容」，一眼看到整齐的结果
+      const vp = document.querySelector('.note-viewport');
+      if (vp && vp.__fitContent) setTimeout(() => vp.__fitContent(), 150);
+      toast('已整理 ✨');
+    } catch (e) { toast('整理失败：' + e.message); }
+  },
+  async moveAnchor(unit, id, x, y) {
+    // x/y 是世界坐标（可为负、可远超基准区）；锚点仍按归一化存，渲染时用 NC_BASE_* 还原
+    const b = this.ctx.board; if (!b) return;
+    const cfg = Object.assign({}, b.config || {});
+    cfg.anchors = (cfg.anchors || []).map((a) => (a.id === id
+      ? Object.assign({}, a, { x: x / NC_BASE_W, y: y / NC_BASE_H }) : a));
+    try { await TY.db.updateBoard(b.id, { config: cfg }); b.config = cfg; }
+    catch (e) { toast(e.message); }
+  },
+  /* 老师端贴便签：平时收成右下角一个小按钮，点开才展开面板；支持传图、带「老师」标识 */
+  buildNoteDock() {
+    const colors = ['yellow', 'red', 'green', 'blue', 'purple'];
+    const me = localStorage.getItem('ty_teacher_name') || '老师';
+    let selColor = 'yellow', selShape = 'square', imgData = '';
+    const wrap = document.createElement('div');
+    wrap.className = 'note-dock-wrap';
+    wrap.innerHTML = '<button type="button" class="dk-fab" title="老师也可以直接贴便签">✍️ 我也贴一张</button>'
+      + '<div class="note-dock">'
+      +   '<div class="dk-head"><span class="dk-avatar">👩🏻‍🏫</span><b>以「老师」身份贴一张</b><button type="button" class="dk-close" title="收起">✕</button></div>'
+      +   '<textarea class="dk-text" placeholder="写下你的想法…（也可以只传一张图片）"></textarea>'
+      +   '<div class="dk-preview" hidden></div>'
+      +   '<div class="dk-row"><input class="dk-name" value="' + esc(me) + '" title="署名" placeholder="署名">'
+      +     '<button type="button" class="dk-file">📎 图片</button>'
+      +     '<input type="file" class="dk-file-input" accept="image/*" hidden></div>'
+      +   '<div class="dk-row"><span class="dk-hint">颜色</span><div class="dk-swatches">'
+      +     colors.map((c, i) => {
+              const col = TY_NOTE_COLORS[c] || TY_NOTE_COLORS.yellow;
+              return '<button type="button" class="dk-sw' + (i === 0 ? ' on' : '') + '" data-c="' + c + '" style="background:' + col.bg + '"></button>';
+            }).join('')
+      +   '</div></div>'
+      +   '<div class="dk-row"><span class="dk-hint">形状</span><div class="dk-shapes">'
+      +     NOTE_SHAPES.map((s, i) => '<button type="button" class="dk-sh' + (i === 0 ? ' on' : '') + '" data-s="' + s.k + '" title="' + s.name + '">' + s.icon + '</button>').join('')
+      +   '</div></div>'
+      +   '<button type="button" class="btn btn-primary btn-sm dk-send">贴上 ✨</button>'
+      + '</div>';
+    const dock = wrap.querySelector('.note-dock');
+    const setOpen = (on) => wrap.classList.toggle('open', on);
+
+    const preview = dock.querySelector('.dk-preview');
+    const setPreview = () => {
+      if (!imgData) { preview.hidden = true; preview.innerHTML = ''; return; }
+      preview.hidden = false;
+      preview.innerHTML = '<img src="' + esc(imgData) + '" alt="预览"><button type="button" class="dk-clear" title="移除图片">✕</button>';
+      preview.querySelector('.dk-clear').onclick = () => { imgData = ''; setPreview(); };
+    };
+
+    wrap.querySelector('.dk-fab').onclick = () => {
+      setOpen(true);
+      setTimeout(() => { const t = dock.querySelector('.dk-text'); if (t) t.focus(); }, 60);
+    };
+    dock.querySelector('.dk-close').onclick = () => setOpen(false);
+    dock.querySelectorAll('.dk-sw').forEach((x) => { x.onclick = () => { selColor = x.dataset.c; dock.querySelectorAll('.dk-sw').forEach((y) => y.classList.remove('on')); x.classList.add('on'); }; });
+    dock.querySelectorAll('.dk-sh').forEach((x) => { x.onclick = () => { selShape = x.dataset.s; dock.querySelectorAll('.dk-sh').forEach((y) => y.classList.remove('on')); x.classList.add('on'); }; });
+
+    dock.querySelector('.dk-file').onclick = () => dock.querySelector('.dk-file-input').click();
+    dock.querySelector('.dk-file-input').onchange = (e) => {
+      const f = e.target.files && e.target.files[0];
+      e.target.value = '';
+      if (!f) return;
+      toast('图片处理中…');
+      this.compressImage(f)
+        .then((d) => { imgData = d; setPreview(); toast('图片已加上，点「贴上」即可'); })
+        .catch((err) => toast(err.message));
+    };
+
+    dock.querySelector('.dk-send').onclick = () => {
+      const ta = dock.querySelector('.dk-text');
+      const text = (ta.value || '').trim();
+      if (!text && !imgData) { toast('写点内容或传张图片再贴吧'); return; }
+      const who = (dock.querySelector('.dk-name').value || '').trim() || '老师';
+      localStorage.setItem('ty_teacher_name', who);
+      const spot = findFreeSpot(this.noteRows(), TY._ncCenterLast);
+      const data = { text, color: selColor, shape: selShape, px: spot.x, py: spot.y, w: imgData ? 230 : 190, role: 'teacher' };
+      if (imgData) data.img = imgData;
+      TY.db.submit({ boardId: this.ctx.board.id, type: 'note', partIdx: 0, author: who, data })
+        .then(() => { ta.value = ''; imgData = ''; setPreview(); setOpen(false); toast('贴好啦 ✨'); return this.refreshBoard(true); })
+        .catch((e) => toast(e.message));
+    };
+    return wrap;
+  },
+  /* 便签图片：等比压到 720px 内 + JPEG 0.72，避免把大图塞进数据库 */
+  compressImage(file) {
+    return new Promise((resolve, reject) => {
+      const fr = new FileReader();
+      fr.onerror = () => reject(new Error('图片读取失败'));
+      fr.onload = () => {
+        const im = new Image();
+        im.onerror = () => reject(new Error('图片解析失败'));
+        im.onload = () => {
+          const max = 720;
+          let w = im.width || max, h = im.height || max;
+          if (w > max) { h = Math.round(h * max / w); w = max; }
+          if (h > max) { w = Math.round(w * max / h); h = max; }
+          const cv = document.createElement('canvas');
+          cv.width = w; cv.height = h;
+          const cx = cv.getContext('2d');
+          cx.fillStyle = '#fff'; cx.fillRect(0, 0, w, h);   // PNG 透明底转白，免得变黑块
+          cx.drawImage(im, 0, 0, w, h);
+          try { resolve(cv.toDataURL('image/jpeg', 0.72)); }
+          catch (err) { resolve(fr.result); }
+        };
+        im.src = fr.result;
+      };
+      fr.readAsDataURL(file);
+    });
+  },
+  async endBoard() {
+    if (!confirm('结束并归档本次互动？\n归档后学生端停止提交，数据永久保存。')) return;
+    try { await TY.db.archiveBoard(this.ctx.bid); toast('已归档'); await this.refreshBoard(); } catch (e) { toast(e.message); }
+  },
+  async reopenBoard() {
+    try { await TY.db.reopenBoard(this.ctx.bid); toast('已重新开启，学生可继续参与'); await this.refreshBoard(); } catch (e) { toast(e.message); }
+  },
+  startPoll() {
+    this.stopPoll();
+    this.poll = setInterval(() => { if (this.ctx.bid) this.refreshBoard(true); }, 2500);
+  },
+  stopPoll() { if (this.poll) { clearInterval(this.poll); this.poll = null; } },
+
+  /* ============ 下发 ============ */
+  async publish() {
+    const b = this.ctx.board; if (!b) return;
+    const url = TY.studentUrl(b.id);
+    // 课堂码展示（无法扫码时：直播/语音场景让学生输入）
+    const codeBox = document.getElementById('pub-code');
+    if (b.code) {
+      codeBox.style.display = 'block';
+      document.getElementById('pc-num').textContent = fmtCode(b.code);
+    } else { codeBox.style.display = 'none'; }
+    document.getElementById('qr-link').textContent = url;
+    document.getElementById('qr-img').src = 'https://api.qrserver.com/v1/create-qr-code/?size=420x420&margin=10&data=' + encodeURIComponent(url);
+    this.show('m-pub');
+    this.renderPubLive();
+  },
+  async copyCode() {
+    const code = this.ctx.board && this.ctx.board.code;
+    const s = code ? String(code) : '';
+    if (!s) { toast('暂无课堂码'); return; }
+    try { await navigator.clipboard.writeText(s); toast('课堂码 ' + fmtCode(s) + ' 已复制'); }
+    catch (e) { prompt('课堂码', s); }
+  },
+  renderPubLive() {
+    const box = document.getElementById('pub-live');
+    const b = this.ctx.board;
+    const t = TYPES[b.type];
+    box.innerHTML = `<div class="pr-head"><span class="live-dot"></span>实时汇总 · ${t.icon} ${t.name}</div>`;
+    const { units } = boardUnits(b);
+    units.forEach((u, i) => {
+      const rows = subsOf(this.boardRows, u);
+      const title = u.title;
+      const wrap = document.createElement('div'); wrap.className = 'unit-card'; wrap.style.cssText = 'box-shadow:none;margin-bottom:10px;padding:12px 14px';
+      const block = document.createElement('div');
+      const short = document.createElement('div'); short.className = 'q-text'; short.style.cssText = 'font-size:13.5px;font-weight:800;margin-bottom:8px'; short.textContent = title;
+      wrap.appendChild(short);
+      if (u.subType === 'note') { renderNotes(block, u, rows, { fullscreen: false, viewKey: 'pub:' + b.id + ':' + i }); wrap.appendChild(block); }
+      else if (u.subType === 'choice') { renderChoice(block, u, rows); wrap.appendChild(block); }
+      else if (u.subType === 'blank') { renderBlank(block, u, rows); wrap.appendChild(block); }
+      else if (u.subType === 'cloud') { renderCloud(block, u, rows); wrap.appendChild(block); }
+      box.appendChild(wrap);
+    });
+    if (!units.length) box.innerHTML += '<div class="side-note">暂无题目</div>';
+  },
+  async copyLink() {
+    const url = TY.studentUrl(this.ctx.board.id);
+    try { await navigator.clipboard.writeText(url); toast('学生链接已复制'); }
+    catch (e) { prompt('复制链接', url); }
+  },
+
+  /* ============ 导出 ============ */
+  exportText() {
+    const b = this.ctx.board;
+    const { units, meta } = boardUnits(b);
+    let out = `【TeacherYO】${b.title}\n类型：${TYPES[b.type].name}\n时间：${fmtTime(b.created_at)}\n${'='.repeat(26)}\n`;
+    if (meta && meta.material) { out += `材料：${meta.material.title}\n链接：${meta.material.url}\n${meta.material.desc ? '提示：' + meta.material.desc + '\n' : ''}`; }
+    units.forEach((u, i) => {
+      const rows = subsOf(this.boardRows, u);
+      out += `\n◆ ${u.title}\n`;
+      if (u.subType === 'choice') u.options.forEach((o, j) => { const cn = rows.filter((r) => Array.isArray(r.data.sel) && r.data.sel.includes(j)).length; out += `  ${String.fromCharCode(65 + j)}. ${o} — ${cn} 票\n`; });
+      else if (u.subType === 'blank') rows.forEach((r) => { out += `  ${r.author}：${r.data.text || ''}\n`; });
+      else if (u.subType === 'cloud') { const f = {}; rows.forEach((r) => { const k = String(r.data.text || '').trim(); if (k) f[k] = (f[k] || 0) + 1; }); Object.entries(f).sort((a, b2) => b2[1] - a[1]).forEach(([w, cn]) => { out += `  ${w} × ${cn}\n`; }); }
+      else rows.forEach((r) => { out += `  [👍${r.likes || 0}] ${r.author}：${r.data.text || ''}\n`; });
+    });
+    const doCopy = (s) => (navigator.clipboard ? navigator.clipboard.writeText(s).then(() => toast('结果已复制，可粘贴存档')) : toast('复制失败'));
+    doCopy(out).catch(() => { prompt('复制内容', out); });
+  }
+};
+window.App = App;
+window.addEventListener('DOMContentLoaded', () => App.boot());
+</script>
+</body>
+</html>

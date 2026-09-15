@@ -1,0 +1,14 @@
+# ---------- 私有配置 ----------
+# 你的 CloudBase 环境凭据写在这里，绝对不要提交
+config.local.js
+
+# ---------- 系统 / 编辑器 ----------
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
+
+# ---------- 临时调试文件 ----------
+_*_probe.html
+*.bak
