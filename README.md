@@ -150,6 +150,7 @@ window.TY_CONFIG = Object.assign(window.TY_CONFIG || {}, {
 teacheryo-whiteboard/
 ├── index.html            老师端
 ├── student.html          学生端
+├── AI-PROMPT.md          给 AI 助手看的说明（含可直接复制的话术）
 ├── config.js             配置模板（保持为空就是本地模式）
 ├── config.local.js       你的私有配置 —— 不进 Git（需自己创建）
 ├── css/style.css         全部样式
