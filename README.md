@@ -210,6 +210,16 @@ teacheryo-whiteboard/
 
 ---
 
+## 关于 TeacherYO
+
+**TeacherYO** —— AI 培训 / 数字分身 / 角色系统
+
+官网：**[teacheryo.ai](https://teacheryo.ai)**
+
+在小红书 / 公众号 / 视频号 / B站 都能找到我们，各平台同名 **TeacherYO**，欢迎来聊。
+
+---
+
 ## 许可
 
 [MIT](LICENSE) —— 随便用、随便改、随便分发，包括商用。
