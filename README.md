@@ -1,5 +1,9 @@
 # TeacherYO 课堂互动工具
 
+**TeacherYO** —— AI 培训 / 数字分身 / 角色系统 · [teacheryo.ai](https://teacheryo.ai)
+
+在小红书 / 公众号 / 视频号 / B站 都能找到我们，各平台同名 **TeacherYO**。
+
 > 让每个人的想法，一起贴上墙。
 
 面向老师的课堂互动套件：便签墙、选择题、填空题、词云、材料学习。
@@ -207,16 +211,6 @@ teacheryo-whiteboard/
    - 不给 `anon` 开放删除/修改他人记录的权限
    - 或者引入云函数 / 自定义登录来区分老师和学生角色
 4. 公开仓库里不要提交 `config.local.js`
-
----
-
-## 关于 TeacherYO
-
-**TeacherYO** —— AI 培训 / 数字分身 / 角色系统
-
-官网：**[teacheryo.ai](https://teacheryo.ai)**
-
-在小红书 / 公众号 / 视频号 / B站 都能找到我们，各平台同名 **TeacherYO**，欢迎来聊。
 
 ---
 
