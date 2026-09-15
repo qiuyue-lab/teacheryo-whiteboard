@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>比喻修辞 v2 · 视觉化相似性</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;900&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f0f0f0;--ink:#111;--hl:#ff3300;--dim:#555}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100%;background:#111;overflow:hidden;font-family:'Noto Sans SC',sans-serif}
+#deck{position:absolute;background:var(--bg);overflow:hidden}
+.slide{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  padding:56px 80px;opacity:0;transition:opacity .48s ease;z-index:1}
+.slide.active{opacity:1;z-index:2}
+.slide.leaving{display:flex!important;opacity:0;pointer-events:none;z-index:1}
+[data-step]{opacity:0;transform:translateY(16px);transition:opacity .4s ease,transform .4s ease}
+[data-step].on{opacity:1;transform:translateY(0)}
+#prog-wrap{position:absolute;bottom:0;left:0;right:0;height:3px;background:rgba(17,17,17,.1);z-index:100}
+#prog{height:100%;background:var(--hl);transition:width .3s ease}
+#ctr{position:absolute;top:18px;right:28px;font-size:18px;color:var(--dim);z-index:100}
+</style>
+</head>
+<body>
+<div id="deck" data-w="1920" data-h="1080">
+
+<!-- S1 COVER -->
+<div class="slide active">
+  <div style="display:flex;flex-direction:column;align-items:flex-start;width:100%;position:relative;z-index:1">
+    <div style="font-size:22px;color:var(--dim);letter-spacing:4px;margin-bottom:28px">初中语文 · 修辞手法</div>
+    <div style="font-size:120px;font-weight:900;line-height:1;color:var(--ink)">比喻</div>
+    <div style="font-size:44px;color:var(--dim);margin-top:12px">用眼睛看见语言的桥</div>
+  </div>
+  <!-- Decorative visual: moon and boat connected -->
+  <div style="position:absolute;right:100px;top:50%;transform:translateY(-50%);opacity:.12">
+    <svg width="500" height="400" viewBox="0 0 500 400">
+      <!-- Moon -->
+      <path d="M100,60 A80,80 0 1,1 100,220 A50,50 0 1,0 100,60Z" fill="#111"/>
+      <!-- Bridge (connection) -->
+      <path d="M180,140 Q250,80 320,140" stroke="#ff3300" stroke-width="6" fill="none" stroke-dasharray="20,8"/>
+      <!-- Boat -->
+      <path d="M320,120 L420,120 Q440,140 430,160 L310,160 Q300,140 320,120Z" fill="#111"/>
+      <path d="M370,120 L370,80 L400,100 Z" fill="#111"/>
+    </svg>
+  </div>
+</div>
+
+<!-- S2 CORE VISUAL: SHARED SHAPE IS THE METAPHOR -->
+<!-- Instead of explaining "本体/相似点/喻体" in text boxes,
+     we SHOW the moon and boat and highlight their SAME CURVE -->
+<div class="slide" id="s2">
+  <div style="display:flex;flex-direction:column;align-items:center;gap:32px;width:100%">
+    <div style="font-size:52px;font-weight:900;text-align:center">"弯弯的月儿小小的船"——为什么这个比喻好？</div>
+    <div style="display:flex;align-items:center;gap:60px;width:100%">
+      <!-- Moon visual -->
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:16px" data-step="1">
+        <svg width="240" height="240" viewBox="0 0 240 240">
+          <!-- Full circle background (full moon) fades away -->
+          <circle cx="120" cy="120" r="100" fill="#f0e68c" opacity=".25" stroke="none"/>
+          <!-- Crescent moon -->
+          <path id="moonPath" d="M120,20 A100,100 0 1,1 120,220 A60,60 0 1,0 120,20Z" fill="#f0e68c" stroke="#111" stroke-width="3"/>
+          <!-- Highlight the CURVE -->
+          <path id="moonCurve" d="M120,20 A100,100 0 0,0 120,220" fill="none" stroke="none"/>
+        </svg>
+        <div style="font-size:36px;font-weight:900">本体</div>
+        <div style="font-size:28px;color:var(--dim)">弯弯的月亮</div>
+      </div>
+      <!-- Shared property in the middle — appears as an arrow bridge -->
+      <div style="flex:0 0 280px;display:flex;flex-direction:column;align-items:center;gap:16px" data-step="2">
+        <svg width="280" height="160" viewBox="0 0 280 160">
+          <!-- Bridge arc -->
+          <path id="bridge" d="M20,80 Q140,20 260,80" fill="none" stroke="#ff3300" stroke-width="6"
+            stroke-dasharray="300" stroke-dashoffset="300" style="transition:stroke-dashoffset 1s ease"/>
+          <polygon id="bHead" points="260,80 244,70 248,84" fill="#ff3300" opacity="0" style="transition:opacity .3s ease .9s"/>
+          <!-- Shared shape: two curves showing the similarity -->
+          <path d="M60,110 Q140,70 220,110" fill="none" stroke="#ff3300" stroke-width="4" stroke-dasharray="10,6"/>
+          <text x="140" y="148" text-anchor="middle" font-size="20" fill="#ff3300" font-weight="900" font-family="Noto Sans SC">相似点：弯曲</text>
+        </svg>
+        <div style="font-size:24px;color:var(--hl,#ff3300);font-weight:900;text-align:center">比喻桥</div>
+      </div>
+      <!-- Boat visual -->
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:16px" data-step="1">
+        <svg width="240" height="240" viewBox="0 0 240 240">
+          <!-- Boat hull (same curve as crescent) -->
+          <path d="M40,140 Q120,180 200,140 L190,110 Q120,80 50,110 Z" fill="#bfdbfe" stroke="#111" stroke-width="3"/>
+          <!-- Mast and sail -->
+          <line x1="120" y1="110" x2="120" y2="50" stroke="#111" stroke-width="3"/>
+          <path d="M120,55 L160,80 L120,105 Z" fill="#fde68a" stroke="#111" stroke-width="2"/>
+          <!-- Highlight the CURVE of hull -->
+          <path id="boatCurve" d="M40,140 Q120,180 200,140" fill="none" stroke="none"/>
+        </svg>
+        <div style="font-size:36px;font-weight:900">喻体</div>
+        <div style="font-size:28px;color:var(--dim)">小小的船</div>
+      </div>
+    </div>
+    <div style="font-size:34px;font-weight:700;text-align:center" data-step="3">
+      两个不同事物，共享同一个<span style="color:var(--hl)">视觉形状</span> → 读者立刻"看见"月亮的弯
+    </div>
+  </div>
+</div>
+
+<!-- S3 THREE TYPES — Visual text transformation shows the difference -->
+<div class="slide" id="s3">
+  <div style="display:flex;flex-direction:column;gap:32px;width:100%">
+    <div style="font-size:52px;font-weight:900;text-align:center">三种格式——同一意思，三种桥</div>
+    <div style="display:flex;gap:40px">
+      <!-- 明喻: both objects present, connected by "像" -->
+      <div style="flex:1;border:2px solid var(--ink);background:#fff;padding:36px 28px;display:flex;flex-direction:column;gap:20px" data-step="1">
+        <div style="font-size:40px;font-weight:900;color:var(--hl)">① 明喻</div>
+        <!-- Visual: A → LIKE → B, both visible -->
+        <svg width="100%" height="120" viewBox="0 0 400 120">
+          <rect x="10" y="30" width="120" height="60" rx="4" fill="#fde68a" stroke="#111" stroke-width="2"/>
+          <text x="70" y="67" text-anchor="middle" font-size="18" font-weight="900" fill="#111" font-family="Noto Sans SC">本体</text>
+          <rect x="270" y="30" width="120" height="60" rx="4" fill="#bfdbfe" stroke="#111" stroke-width="2"/>
+          <text x="330" y="67" text-anchor="middle" font-size="18" font-weight="900" fill="#111" font-family="Noto Sans SC">喻体</text>
+          <line x1="132" y1="60" x2="268" y2="60" stroke="#111" stroke-width="2" stroke-dasharray="6,4"/>
+          <rect x="174" y="42" width="52" height="36" rx="4" fill="#ff3300"/>
+          <text x="200" y="66" text-anchor="middle" font-size="18" font-weight="900" fill="#fff" font-family="Noto Sans SC">像</text>
+        </svg>
+        <div style="font-size:24px;color:var(--dim)">格式：本体 + <strong style="color:var(--hl)">像/如/似</strong> + 喻体</div>
+        <div style="font-size:24px;font-style:italic;border-left:4px solid var(--hl);padding-left:16px;line-height:1.6">
+          她的笑容<strong style="color:var(--hl)">像</strong>春风一样温暖
+        </div>
+      </div>
+      <!-- 暗喻: A IS B, identification -->
+      <div style="flex:1;border:2px solid var(--ink);background:#fff;padding:36px 28px;display:flex;flex-direction:column;gap:20px" data-step="2">
+        <div style="font-size:40px;font-weight:900;color:var(--hl)">② 暗喻</div>
+        <svg width="100%" height="120" viewBox="0 0 400 120">
+          <rect x="10" y="30" width="120" height="60" rx="4" fill="#fde68a" stroke="#111" stroke-width="2"/>
+          <text x="70" y="67" text-anchor="middle" font-size="18" font-weight="900" fill="#111" font-family="Noto Sans SC">本体</text>
+          <!-- Arrow merging into same box -->
+          <line x1="132" y1="60" x2="200" y2="60" stroke="#111" stroke-width="2"/>
+          <rect x="200" y="30" width="52" height="60" rx="4" fill="#ff3300"/>
+          <text x="226" y="67" text-anchor="middle" font-size="18" font-weight="900" fill="#fff" font-family="Noto Sans SC">是</text>
+          <rect x="254" y="30" width="136" height="60" rx="4" fill="#bfdbfe" stroke="#111" stroke-width="2"/>
+          <text x="322" y="67" text-anchor="middle" font-size="18" font-weight="900" fill="#111" font-family="Noto Sans SC">喻体</text>
+        </svg>
+        <div style="font-size:24px;color:var(--dim)">格式：本体 + <strong style="color:var(--hl)">是/成了</strong> + 喻体</div>
+        <div style="font-size:24px;font-style:italic;border-left:4px solid var(--hl);padding-left:16px;line-height:1.6">
+          她的眼睛<strong style="color:var(--hl)">是</strong>会说话的星星
+        </div>
+      </div>
+      <!-- 借喻: only B visible, A hidden -->
+      <div style="flex:1;border:2px solid var(--ink);background:#fff;padding:36px 28px;display:flex;flex-direction:column;gap:20px" data-step="3">
+        <div style="font-size:40px;font-weight:900;color:var(--hl)">③ 借喻</div>
+        <svg width="100%" height="120" viewBox="0 0 400 120">
+          <!-- 本体 hidden (dashed, faded) -->
+          <rect x="10" y="30" width="120" height="60" rx="4" fill="#e5e7eb" stroke="#111" stroke-width="2" stroke-dasharray="6,4"/>
+          <text x="70" y="62" text-anchor="middle" font-size="16" fill="#888" font-family="Noto Sans SC">本体</text>
+          <text x="70" y="80" text-anchor="middle" font-size="14" fill="#aaa" font-family="Noto Sans SC">（省略）</text>
+          <!-- Only 喻体 appears solid -->
+          <rect x="264" y="30" width="126" height="60" rx="4" fill="#bfdbfe" stroke="#111" stroke-width="3"/>
+          <text x="327" y="67" text-anchor="middle" font-size="18" font-weight="900" fill="#111" font-family="Noto Sans SC">喻体出场</text>
+          <line x1="132" y1="60" x2="262" y2="60" stroke="#111" stroke-width="2" stroke-dasharray="8,5"/>
+        </svg>
+        <div style="font-size:24px;color:var(--dim)">格式：直接用喻体，本体省略</div>
+        <div style="font-size:24px;font-style:italic;border-left:4px solid var(--hl);padding-left:16px;line-height:1.6">
+          那一群<strong style="color:var(--hl)">白帆</strong>出发了<br><span style="font-size:18px;color:var(--dim)">（白帆=船，本体隐去）</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- S4 GOOD METAPHOR — visual "bridge quality" scale -->
+<div class="slide">
+  <div style="display:flex;flex-direction:column;gap:36px;width:100%">
+    <div style="font-size:52px;font-weight:900;text-align:center">好比喻的三个视觉条件</div>
+    <!-- Three rules shown as visual diagrams -->
+    <div style="display:flex;gap:40px">
+      <!-- Rule 1: Real shared property -->
+      <div style="flex:1;border:2px solid var(--ink);background:#fff;padding:32px 24px;display:flex;flex-direction:column;align-items:center;gap:16px" data-step="1">
+        <svg width="220" height="120" viewBox="0 0 220 120">
+          <!-- A and B with a visible OVERLAP area -->
+          <ellipse cx="75" cy="60" rx="65" ry="50" fill="rgba(255,51,0,.15)" stroke="#ff3300" stroke-width="2"/>
+          <ellipse cx="145" cy="60" rx="65" ry="50" fill="rgba(0,100,255,.15)" stroke="#2a5fc8" stroke-width="2"/>
+          <!-- Overlap shaded dark -->
+          <path d="M110,18 A65,50 0 0,1 110,102 A65,50 0 0,1 110,18Z" fill="rgba(17,17,17,.15)"/>
+          <text x="75" y="65" text-anchor="middle" font-size="18" fill="#c8432a" font-weight="900" font-family="Noto Sans SC">本体</text>
+          <text x="145" y="65" text-anchor="middle" font-size="18" fill="#2a5fc8" font-weight="900" font-family="Noto Sans SC">喻体</text>
+          <text x="110" y="65" text-anchor="middle" font-size="14" fill="#111" font-weight="900" font-family="Noto Sans SC">共同</text>
+        </svg>
+        <div style="font-size:28px;font-weight:900;text-align:center">相似点真实存在</div>
+        <div style="font-size:22px;color:var(--dim);text-align:center">交集越清晰，比喻越准确</div>
+      </div>
+      <!-- Rule 2: Target more familiar -->
+      <div style="flex:1;border:2px solid var(--ink);background:#fff;padding:32px 24px;display:flex;flex-direction:column;align-items:center;gap:16px" data-step="2">
+        <svg width="220" height="120" viewBox="0 0 220 120">
+          <!-- 本体 = small/abstract (dashed) -->
+          <rect x="20" y="35" width="70" height="50" rx="4" stroke="#888" stroke-width="2" fill="#e5e7eb" stroke-dasharray="5,4"/>
+          <text x="55" y="55" text-anchor="middle" font-size="14" fill="#888" font-family="Noto Sans SC">本体</text>
+          <text x="55" y="72" text-anchor="middle" font-size="12" fill="#aaa" font-family="Noto Sans SC">陌生</text>
+          <!-- Arrow direction: B helps understand A -->
+          <line x1="160" y1="60" x2="94" y2="60" stroke="#ff3300" stroke-width="3"/>
+          <polygon points="90,54 104,60 90,66" fill="#ff3300"/>
+          <!-- 喻体 = large/familiar (solid) -->
+          <rect x="120" y="25" width="80" height="70" rx="4" stroke="#111" stroke-width="3" fill="#fde68a"/>
+          <text x="160" y="55" text-anchor="middle" font-size="14" fill="#111" font-weight="900" font-family="Noto Sans SC">喻体</text>
+          <text x="160" y="74" text-anchor="middle" font-size="12" fill="#555" font-family="Noto Sans SC">熟悉</text>
+        </svg>
+        <div style="font-size:28px;font-weight:900;text-align:center">喻体比本体更熟悉</div>
+        <div style="font-size:22px;color:var(--dim);text-align:center">用已知解释未知</div>
+      </div>
+      <!-- Rule 3: Different categories -->
+      <div style="flex:1;border:2px solid var(--ink);background:#fff;padding:32px 24px;display:flex;flex-direction:column;align-items:center;gap:16px" data-step="3">
+        <svg width="220" height="120" viewBox="0 0 220 120">
+          <!-- Correct: two different shapes (star ≠ circle) -->
+          <polygon points="50,20 58,44 82,44 64,58 70,82 50,68 30,82 36,58 18,44 42,44" fill="#ff3300" opacity=".7"/>
+          <circle cx="170" cy="50" r="34" fill="#2a5fc8" opacity=".6"/>
+          <line x1="90" y1="60" x2="136" y2="60" stroke="#ff3300" stroke-width="3" stroke-dasharray="8,4"/>
+          <text x="110" y="108" text-anchor="middle" font-size="16" fill="#ff3300" font-weight="900" font-family="Noto Sans SC">不同类 ✓</text>
+          <!-- Wrong examples below -->
+          <text x="50" y="108" text-anchor="middle" font-size="12" fill="#aaa" font-family="Noto Sans SC">×同类</text>
+        </svg>
+        <div style="font-size:28px;font-weight:900;text-align:center">本喻体不同类</div>
+        <div style="font-size:22px;color:var(--dim);text-align:center">"苹果像橙子"是比较，不是比喻</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- S5 FIND THE METAPHOR — click to reveal analysis with visual bridge diagram -->
+<div class="slide">
+  <div style="display:flex;flex-direction:column;gap:24px;width:100%">
+    <div style="font-size:52px;font-weight:900">找比喻——点击查看桥的结构</div>
+    <div style="display:flex;flex-direction:column;gap:18px">
+      <div style="padding:24px 32px;border:2px solid var(--ink);background:#fff;cursor:pointer;
+        display:grid;grid-template-columns:1fr auto;gap:16px;align-items:center"
+        onclick="showBridge(this,'远处的山峦','屏障','绵延高大','明喻','像')" data-interactive>
+        <div style="font-size:28px">① 远处的山峦<strong style="color:var(--hl)">像</strong>一道起伏的屏障。</div>
+        <div class="bridge-vis" style="display:none"></div>
+      </div>
+      <div style="padding:24px 32px;border:2px solid var(--ink);background:#fff;cursor:pointer;
+        display:grid;grid-template-columns:1fr auto;gap:16px;align-items:center"
+        onclick="showBridge(this,'激情','一团火','热烈旺盛','借喻','')" data-interactive>
+        <div style="font-size:28px">② 他的心里有<strong style="color:var(--hl)">一团火</strong>，越烧越旺。</div>
+        <div class="bridge-vis" style="display:none"></div>
+      </div>
+      <div style="padding:24px 32px;border:2px solid var(--ink);background:#fff;cursor:pointer;
+        display:grid;grid-template-columns:1fr auto;gap:16px;align-items:center"
+        onclick="showBridge(this,'','','','NO','')" data-interactive>
+        <div style="font-size:28px">③ 弟弟长得跟爸爸<strong style="color:var(--hl)">一样</strong>高了。</div>
+        <div class="bridge-vis" style="display:none"></div>
+      </div>
+      <div style="padding:24px 32px;border:2px solid var(--ink);background:#fff;cursor:pointer;
+        display:grid;grid-template-columns:1fr auto;gap:16px;align-items:center"
+        onclick="showBridge(this,'知识','灯','指引方向','暗喻','是')" data-interactive>
+        <div style="font-size:28px">④ 知识<strong style="color:var(--hl)">是</strong>照亮前路的一盏灯。</div>
+        <div class="bridge-vis" style="display:none"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- S6 WRITE STEPS — visual flow with example building -->
+<div class="slide">
+  <div style="display:flex;flex-direction:column;gap:32px;width:100%">
+    <div style="font-size:52px;font-weight:900;text-align:center">写比喻——三步建桥</div>
+    <!-- The process shown as a building bridge animation -->
+    <svg width="1400" height="220" viewBox="0 0 1400 220" style="width:100%;max-width:1400px;margin:0 auto">
+      <!-- Step 1 box -->
+      <rect x="20" y="60" width="360" height="100" rx="6" fill="#fff" stroke="#111" stroke-width="2"/>
+      <text x="200" y="98" text-anchor="middle" font-size="22" font-weight="900" fill="#111" font-family="Noto Sans SC">Step 1：确定本体</text>
+      <text x="200" y="125" text-anchor="middle" font-size="18" fill="#555" font-family="Noto Sans SC">考试压力很大</text>
+      <text x="200" y="148" text-anchor="middle" font-size="18" fill="#ff3300" font-family="Noto Sans SC">特征：重、沉、压</text>
+      <!-- Arrow -->
+      <line x1="382" y1="110" x2="458" y2="110" stroke="#111" stroke-width="3"/>
+      <polygon points="462,104 448,110 462,116" fill="#111"/>
+      <!-- Step 2 box -->
+      <rect x="460" y="60" width="380" height="100" rx="6" fill="#fff" stroke="#111" stroke-width="2"/>
+      <text x="650" y="98" text-anchor="middle" font-size="22" font-weight="900" fill="#111" font-family="Noto Sans SC">Step 2：找喻体</text>
+      <text x="650" y="125" text-anchor="middle" font-size="18" fill="#555" font-family="Noto Sans SC">重→石头/山/铁板</text>
+      <text x="650" y="148" text-anchor="middle" font-size="18" fill="#ff3300" font-family="Noto Sans SC">选最具体的：一座山</text>
+      <!-- Arrow -->
+      <line x1="842" y1="110" x2="918" y2="110" stroke="#111" stroke-width="3"/>
+      <polygon points="922,104 908,110 922,116" fill="#111"/>
+      <!-- Step 3 box -->
+      <rect x="920" y="40" width="460" height="140" rx="6" fill="#fff3f0" stroke="#ff3300" stroke-width="3"/>
+      <text x="1150" y="88" text-anchor="middle" font-size="22" font-weight="900" fill="#ff3300" font-family="Noto Sans SC">Step 3：写出来</text>
+      <text x="1150" y="118" text-anchor="middle" font-size="26" font-weight="900" fill="#111" font-family="Noto Sans SC" font-style="italic">压力像一座山</text>
+      <text x="1150" y="152" text-anchor="middle" font-size="18" fill="#555" font-family="Noto Sans SC">压在肩头</text>
+    </svg>
+    <div style="display:flex;gap:32px;width:100%">
+      <div style="flex:1;border:2px solid var(--ink);background:#fff;padding:28px 24px">
+        <div style="font-size:30px;font-weight:900;margin-bottom:12px">你来试：描述"时间过得快"</div>
+        <div style="font-size:22px;color:var(--dim)">特征：→ 快/短暂/抓不住<br>候选喻体：→ 流水/白驹/箭<br>写出来：→ 时间如 ___</div>
+      </div>
+      <div style="flex:1;border:2px solid var(--ink);background:#fff;padding:28px 24px">
+        <div style="font-size:30px;font-weight:900;margin-bottom:12px">检查清单</div>
+        <div style="font-size:24px;line-height:2">
+          □ 相似点真实？<br>
+          □ 喻体比本体熟悉？<br>
+          □ 两者不同类？
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- S7 SUMMARY — visual map -->
+<div class="slide">
+  <div style="display:flex;flex-direction:column;align-items:center;gap:36px;width:100%;position:relative;z-index:1">
+    <div style="font-size:60px;font-weight:900;text-align:center">比喻 = 在两种事物间建一座桥</div>
+    <!-- Visual summary diagram -->
+    <svg width="1000" height="260" viewBox="0 0 1000 260" style="max-width:100%">
+      <!-- 本体 box -->
+      <rect x="20" y="80" width="220" height="100" rx="6" fill="#fde68a" stroke="#111" stroke-width="3"/>
+      <text x="130" y="120" text-anchor="middle" font-size="28" font-weight="900" fill="#111" font-family="Noto Sans SC">本体</text>
+      <text x="130" y="152" text-anchor="middle" font-size="20" fill="#555" font-family="Noto Sans SC">你要描述的</text>
+      <!-- 喻体 box -->
+      <rect x="760" y="80" width="220" height="100" rx="6" fill="#bfdbfe" stroke="#111" stroke-width="3"/>
+      <text x="870" y="120" text-anchor="middle" font-size="28" font-weight="900" fill="#111" font-family="Noto Sans SC">喻体</text>
+      <text x="870" y="152" text-anchor="middle" font-size="20" fill="#555" font-family="Noto Sans SC">用来打比方的</text>
+      <!-- Three bridge types -->
+      <!-- 明喻 bridge (top, curved) -->
+      <path d="M242,100 Q500,20 758,100" fill="none" stroke="#ff3300" stroke-width="5" id="br1"/>
+      <text x="500" y="52" text-anchor="middle" font-size="22" fill="#ff3300" font-weight="900" font-family="Noto Sans SC">明喻：像/如/似</text>
+      <!-- 暗喻 bridge (middle, straight) -->
+      <line x1="242" y1="130" x2="758" y2="130" stroke="#555" stroke-width="4" stroke-dasharray="12,8"/>
+      <text x="500" y="124" text-anchor="middle" font-size="22" fill="#555" font-weight="900" font-family="Noto Sans SC">暗喻：是/成了</text>
+      <!-- 借喻 bridge (bottom, dashed, no 本体) -->
+      <path d="M242,160 Q500,240 758,160" fill="none" stroke="#888" stroke-width="4" stroke-dasharray="10,6"/>
+      <text x="500" y="235" text-anchor="middle" font-size="22" fill="#888" font-weight="900" font-family="Noto Sans SC">借喻：省略本体直接用喻体</text>
+      <!-- 相似点 diamond -->
+      <polygon points="500,120 480,130 500,140 520,130" fill="#ff3300"/>
+      <text x="500" y="170" text-anchor="middle" font-size="18" fill="#ff3300" font-weight="900" font-family="Noto Sans SC">相似点</text>
+    </svg>
+    <div style="font-size:36px;font-weight:900;color:var(--hl);text-align:center" data-step="1">
+      视觉化相似性 → 让抽象变得可见
+    </div>
+  </div>
+</div>
+
+</div>
+<div id="prog-wrap"><div id="prog"></div></div>
+<div id="ctr"></div>
+
+<script>
+function scaleCanvas(){
+  const d=document.getElementById('deck');
+  const W=+d.dataset.w||1920,H=+d.dataset.h||1080;
+  const s=Math.min(innerWidth/W,innerHeight/H);
+  d.style.cssText=`width:${W}px;height:${H}px;transform:scale(${s});transform-origin:top left;margin-left:${(innerWidth-W*s)/2}px;margin-top:${(innerHeight-H*s)/2}px`;
+}
+window.addEventListener('resize',scaleCanvas);scaleCanvas();
+const slides=[...document.querySelectorAll('.slide')];
+let cur=0,stepIdx=0;
+const stepsOf=sl=>[...sl.querySelectorAll('[data-step]')].sort((a,b)=>+a.dataset.step-+b.dataset.step);
+const updateUI=()=>{
+  document.getElementById('prog').style.width=((cur+1)/slides.length*100)+'%';
+  document.getElementById('ctr').textContent=(cur+1)+' / '+slides.length;
+};
+function onEnter(i){
+  if(i===1){ // S2: animate bridge
+    setTimeout(()=>{
+      const br=document.querySelector('#s2 #bridge');
+      if(br){br.style.strokeDashoffset='0';
+        setTimeout(()=>{const bh=document.querySelector('#s2 #bHead');if(bh)bh.style.opacity='1';},1000);}
+    },600);
+  }
+}
+function gotoSlide(n){
+  if(n===cur)return;
+  const old=slides[cur];
+  cur=Math.max(0,Math.min(n,slides.length-1));
+  stepIdx=0;
+  const nsl=slides[cur];
+  old.classList.add('leaving');old.classList.remove('active');
+  nsl.style.display='flex';nsl.style.opacity='0';
+  nsl.getBoundingClientRect();
+  nsl.style.transition='opacity .48s ease';nsl.style.opacity='1';
+  nsl.classList.add('active');
+  stepsOf(nsl).forEach(e=>e.classList.remove('on'));
+  updateUI();onEnter(cur);
+  setTimeout(()=>{old.classList.remove('leaving');old.style.display='';nsl.style.transition='';nsl.style.opacity=''},520);
+}
+function advance(){
+  const steps=stepsOf(slides[cur]);
+  if(stepIdx<steps.length){
+    const sv=steps[stepIdx].dataset.step;
+    steps.filter(e=>e.dataset.step===sv).forEach(e=>e.classList.add('on'));
+    while(stepIdx<steps.length&&steps[stepIdx].dataset.step===sv)stepIdx++;
+  }else if(cur<slides.length-1){gotoSlide(cur+1)}
+}
+function retreat(){if(cur>0)gotoSlide(cur-1)}
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight'||e.key===' '){e.preventDefault();advance()}
+  if(e.key==='ArrowLeft'){e.preventDefault();retreat()}
+  if(e.key==='f')document.documentElement.requestFullscreen?.()
+});
+document.addEventListener('click',e=>{if(!e.target.closest('[data-interactive],button,a,input'))advance()});
+let tx=0;
+document.addEventListener('touchstart',e=>{tx=e.touches[0].clientX});
+document.addEventListener('touchend',e=>{const dx=e.changedTouches[0].clientX-tx;if(Math.abs(dx)>50){dx<0?advance():retreat()}});
+
+function showBridge(el,benti,yuti,similar,type,connector){
+  const vis=el.querySelector('.bridge-vis');
+  if(el.dataset.revealed){el.dataset.revealed='';vis.style.display='none';return}
+  el.dataset.revealed='1';
+  if(type==='NO'){
+    vis.innerHTML=`<div style="padding:12px 20px;background:#fee2e2;border:2px solid #ef4444;
+      border-radius:4px;font-size:20px;font-weight:700;color:#c8432a">
+      ❌ 不是比喻！<br><span style="font-size:16px;font-weight:400">"一样"是比较（同类），不是比喻</span></div>`;
+  } else {
+    vis.innerHTML=`<svg width="320" height="80" viewBox="0 0 320 80">
+      <rect x="2" y="18" width="88" height="44" rx="4" fill="#fde68a" stroke="#111" stroke-width="2"/>
+      <text x="46" y="37" text-anchor="middle" font-size="12" fill="#111" font-family="Noto Sans SC">${benti||'（省略）'}</text>
+      <text x="46" y="54" text-anchor="middle" font-size="10" fill="#555" font-family="Noto Sans SC">本体</text>
+      <line x1="92" y1="40" x2="148" y2="40" stroke="#ff3300" stroke-width="2"/>
+      <rect x="148" y="24" width="28" height="32" rx="4" fill="#ff3300"/>
+      <text x="162" y="45" text-anchor="middle" font-size="14" fill="#fff" font-weight="900" font-family="Noto Sans SC">${connector||'≙'}</text>
+      <line x1="178" y1="40" x2="228" y2="40" stroke="#ff3300" stroke-width="2"/>
+      <rect x="228" y="18" width="88" height="44" rx="4" fill="#bfdbfe" stroke="#111" stroke-width="2"/>
+      <text x="272" y="37" text-anchor="middle" font-size="12" fill="#111" font-family="Noto Sans SC">${yuti}</text>
+      <text x="272" y="54" text-anchor="middle" font-size="10" fill="#555" font-family="Noto Sans SC">喻体</text>
+      <text x="162" y="76" text-anchor="middle" font-size="11" fill="#ff3300" font-family="Noto Sans SC">${similar}</text>
+    </svg>
+    <span style="font-size:18px;font-weight:700;color:#22c55e">${type} ✓</span>`;
+  }
+  vis.style.display='flex';vis.style.alignItems='center';vis.style.gap='16px';
+}
+onEnter(0);updateUI();
+</script>
+</body>
+</html>

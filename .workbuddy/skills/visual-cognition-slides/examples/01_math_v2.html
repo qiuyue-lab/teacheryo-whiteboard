@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>认识分数 v2 · 视觉双编码</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#fffbf0;--ink:#2d1b00;--a1:#f97316;--a2:#8b5cf6;--a3:#22c55e;--a4:#ec4899}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100%;background:#111;overflow:hidden;font-family:'Nunito',sans-serif}
+#deck{position:absolute;background:var(--bg);overflow:hidden}
+#deck::before{content:'';position:absolute;inset:0;
+  background:radial-gradient(circle,rgba(249,115,22,.06) 2px,transparent 2px);
+  background-size:48px 48px;pointer-events:none;z-index:0}
+.slide{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  padding:56px 80px;opacity:0;transition:opacity .48s ease;z-index:1}
+.slide.active{opacity:1;z-index:2}
+.slide.leaving{display:flex!important;opacity:0;pointer-events:none;z-index:1}
+[data-step]{opacity:0;transform:translateY(16px);transition:opacity .4s ease,transform .4s ease}
+[data-step].on{opacity:1;transform:translateY(0)}
+#prog-wrap{position:absolute;bottom:0;left:0;right:0;height:6px;background:rgba(45,27,0,.1);z-index:100}
+#prog{height:100%;background:var(--a1);transition:width .3s ease}
+#ctr{position:absolute;top:18px;right:28px;font-size:18px;color:rgba(45,27,0,.35);z-index:100}
+
+/* ── S1 COVER ── */
+.s1-frac-visual{position:absolute;right:100px;top:50%;transform:translateY(-50%);opacity:.18}
+.s1-content{position:relative;z-index:1}
+.s1-title{font-size:116px;font-weight:900;line-height:1}
+.s1-sub{font-size:40px;color:rgba(45,27,0,.6);margin-top:16px}
+.s1-badge{margin-top:28px;display:inline-block;background:var(--a2);color:#fff;
+  padding:12px 36px;border-radius:999px;font-size:26px;font-weight:700;
+  border:3px solid var(--ink);box-shadow:4px 4px 0 var(--ink)}
+
+/* ── S2 EQUAL DIVISION ── */
+/* No text explanation — the animation IS the lesson */
+.s2-wrap{display:flex;align-items:center;gap:80px;width:100%}
+.s2-scene{flex:0 0 500px;text-align:center;position:relative}
+.s2-label{font-size:44px;font-weight:900;text-align:center;margin-top:20px}
+.s2-right{flex:1;display:flex;flex-direction:column;gap:32px}
+.s2-insight{font-size:40px;font-weight:900;line-height:1.4}
+.s2-mini{font-size:26px;color:rgba(45,27,0,.6);margin-top:8px}
+.wrong-x{color:var(--a1)}
+.right-check{color:var(--a3)}
+
+/* ── S3 WHAT IS ½ ── */
+/* The fraction IS the visual — notation emerges from the colored region */
+.frac-derive{display:flex;align-items:center;gap:60px}
+.frac-rect-wrap{position:relative;flex-shrink:0}
+/* annotation lines connecting visual → notation */
+.ann{position:absolute;font-size:32px;font-weight:900;white-space:nowrap;
+  opacity:0;transition:opacity .5s ease}
+.ann.show{opacity:1}
+.frac-notation{display:flex;flex-direction:column;align-items:center;gap:0}
+.frac-n{font-size:160px;font-weight:900;line-height:1}
+.frac-bar{width:100px;height:5px;background:var(--ink);margin:8px 0}
+.frac-d{font-size:160px;font-weight:900;line-height:1}
+.frac-name{font-size:36px;font-weight:700;margin-top:20px;text-align:center}
+
+/* ── S4 NUMERATOR DENOMINATOR ── interactive counting ── */
+.count-scene{display:flex;flex-direction:column;align-items:center;gap:32px;width:100%}
+.count-instruction{font-size:38px;font-weight:700;color:rgba(45,27,0,.7)}
+.count-portions{display:flex;gap:20px;margin:20px 0}
+.portion{width:120px;height:100px;border:4px solid var(--ink);border-radius:8px;
+  cursor:pointer;transition:background .3s ease,transform .2s ease;
+  display:flex;align-items:center;justify-content:center;font-size:28px;
+  font-weight:900;color:transparent;user-select:none;background:#fff}
+.portion.sel{background:var(--a1);color:#fff;transform:scale(1.06)}
+.count-frac{display:flex;flex-direction:column;align-items:center;line-height:1}
+.cf-n,.cf-d{font-size:120px;font-weight:900;min-width:120px;text-align:center;transition:all .3s}
+.cf-bar{width:80px;height:4px;background:var(--ink);margin:6px 0}
+.count-labels{display:flex;gap:80px;margin-top:16px}
+.count-label{text-align:center;font-size:26px;font-weight:700}
+
+/* ── S5 COMPARISON — visual area IS the lesson ── */
+.cmp-scene{display:flex;flex-direction:column;align-items:center;gap:32px;width:100%}
+.cmp-title{font-size:52px;font-weight:900}
+.cmp-bars{display:flex;gap:80px;align-items:flex-start}
+.cmp-unit{display:flex;flex-direction:column;align-items:center;gap:16px}
+.cmp-rect-wrap{position:relative}
+.cmp-label{font-size:80px;font-weight:900;margin-top:8px}
+.cmp-desc{font-size:28px;color:rgba(45,27,0,.6)}
+.bigger-text{font-size:48px;font-weight:900;color:var(--a1);margin-top:20px;text-align:center}
+
+/* ── S6 LIFE — visual objects ── */
+.life-scene{display:grid;grid-template-columns:1fr 1fr 1fr;gap:40px;width:100%}
+.life-item{display:flex;flex-direction:column;align-items:center;gap:16px;
+  border:3px solid var(--ink);border-radius:20px;padding:36px 28px;background:#fff;
+  box-shadow:5px 5px 0 var(--ink)}
+.life-visual{width:200px;height:140px;position:relative}
+.life-frac{font-size:56px;font-weight:900;text-align:center}
+.life-word{font-size:26px;color:rgba(45,27,0,.6);text-align:center}
+
+/* ── S7 QUIZ — visual options ── */
+.quiz-prompt{font-size:52px;font-weight:900;text-align:center;margin-bottom:36px}
+.quiz-prompt span{color:var(--a2)}
+.quiz-opts{display:flex;gap:36px;justify-content:center}
+.qopt{border:4px solid var(--ink);border-radius:16px;padding:24px;background:#fff;
+  cursor:pointer;box-shadow:5px 5px 0 var(--ink);transition:transform .2s;user-select:none}
+.qopt:hover{transform:translateY(-4px)}
+.qopt.correct{border-color:var(--a3);box-shadow:5px 5px 0 var(--a3);background:#f0fdf4}
+.qopt.wrong{border-color:var(--a1);box-shadow:5px 5px 0 var(--a1);background:#fff1f2}
+.quiz-fb{font-size:38px;font-weight:700;text-align:center;min-height:52px;margin-top:16px}
+
+/* ── S8 SUMMARY ── */
+.sum-scene{display:flex;flex-direction:column;align-items:center;gap:36px;width:100%}
+.sum-title{font-size:56px;font-weight:900}
+.sum-visuals{display:flex;gap:56px;align-items:flex-start}
+.sum-item{display:flex;flex-direction:column;align-items:center;gap:16px}
+.sum-word{font-size:36px;font-weight:700;text-align:center}
+.sum-key{font-size:24px;color:rgba(45,27,0,.6);text-align:center;max-width:220px}
+</style>
+</head>
+<body>
+<div id="deck" data-w="1920" data-h="1080">
+
+<!-- ═══════════════════════════════════ S1 COVER ═══════════════════════════════════ -->
+<div class="slide active">
+  <!-- Decorative large fraction visual in background -->
+  <div class="s1-frac-visual">
+    <svg width="500" height="500" viewBox="0 0 500 500">
+      <rect x="0" y="0" width="500" height="250" rx="8" fill="#f97316"/>
+      <rect x="0" y="250" width="500" height="250" rx="8" fill="none" stroke="#2d1b00" stroke-width="4"/>
+      <rect x="0" y="0" width="500" height="500" rx="8" fill="none" stroke="#2d1b00" stroke-width="6"/>
+      <line x1="0" y1="250" x2="500" y2="250" stroke="#2d1b00" stroke-width="4"/>
+    </svg>
+  </div>
+  <div class="s1-content">
+    <div style="font-size:28px;font-weight:700;color:var(--a3);letter-spacing:3px;margin-bottom:16px">小学数学 · 三年级</div>
+    <div class="s1-title">认识<span style="color:var(--a1)">分数</span></div>
+    <div class="s1-sub">看见它，才能理解它</div>
+    <div class="s1-badge">25分钟 · 视觉双编码版</div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════ S2 平均分 ═══════════════════════════════════ -->
+<!-- Visual: animated SVG circle being divided; animation IS the explanation -->
+<div class="slide" id="s2">
+  <div class="s2-wrap">
+    <div class="s2-scene">
+      <svg id="divSvg" width="420" height="420" viewBox="-10 -10 220 220">
+        <!-- Base circle -->
+        <circle cx="100" cy="100" r="100" fill="#fde68a" stroke="#2d1b00" stroke-width="3"/>
+        <!-- Unequal cut line (step 1 → WRONG) -->
+        <line id="uneqCut" x1="60" y1="30" x2="160" y2="190" stroke="#c8432a" stroke-width="3"
+          stroke-dasharray="200" stroke-dashoffset="200" opacity="0"/>
+        <!-- Equal cut — horizontal (step 2) -->
+        <line id="eqCutH" x1="0" y1="100" x2="200" y2="100" stroke="#2d1b00" stroke-width="3"
+          stroke-dasharray="200" stroke-dashoffset="200"/>
+        <!-- Equal cut — vertical (step 2) -->
+        <line id="eqCutV" x1="100" y1="0" x2="100" y2="200" stroke="#2d1b00" stroke-width="3"
+          stroke-dasharray="200" stroke-dashoffset="200"/>
+        <!-- One quarter highlighted (step 3) -->
+        <path id="qtr" d="M100,100 L200,100 A100,100 0 0,0 100,0 Z" fill="rgba(249,115,22,.75)"
+          opacity="0" style="transition:opacity .5s ease"/>
+        <!-- Wrong label -->
+        <text id="wrongTxt" x="100" y="230" text-anchor="middle" font-size="14"
+          fill="#c8432a" font-weight="900" font-family="Nunito" opacity="0">不是平均分 ✗</text>
+        <!-- Right label -->
+        <text id="rightTxt" x="100" y="230" text-anchor="middle" font-size="14"
+          fill="#22c55e" font-weight="900" font-family="Nunito" opacity="0">平均分成 4 份 ✓</text>
+      </svg>
+      <div class="s2-label" id="s2lbl" style="min-height:60px;color:var(--ink)"></div>
+    </div>
+    <div class="s2-right">
+      <div data-step="99"><!-- placeholder, driven by onReveal --></div>
+      <div id="s2insight1" style="opacity:0;transition:opacity .5s ease">
+        <div class="s2-insight">每一份 <strong style="color:var(--a3)">一样大</strong></div>
+        <div class="s2-mini">这才叫平均分</div>
+      </div>
+      <div id="s2insight2" style="opacity:0;transition:opacity .5s ease;margin-top:28px">
+        <div class="s2-insight">平均分的结果<br>用<strong style="color:var(--a1)">分数</strong>表示</div>
+        <div class="s2-mini">取出其中的几份 → 分数</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════ S3 WHAT IS ½ ═══════════════════════════════════ -->
+<!-- Fraction notation DERIVED from the visual region -->
+<div class="slide" id="s3">
+  <div style="display:flex;flex-direction:column;align-items:center;gap:28px;width:100%">
+    <div style="font-size:48px;font-weight:900;text-align:center">把这个方块<strong style="color:var(--a1)">平均分成 2 份</strong>，取出<strong style="color:var(--a2)">1 份</strong></div>
+    <div class="frac-derive">
+      <!-- The visual rectangle IS the fraction -->
+      <div class="frac-rect-wrap">
+        <svg id="fracSvg" width="480" height="220" viewBox="0 0 480 220">
+          <!-- Full rectangle outline -->
+          <rect x="2" y="2" width="476" height="216" rx="6" fill="none" stroke="#2d1b00" stroke-width="4"/>
+          <!-- Left half (numerator = 1 part) -->
+          <rect id="leftHalf" x="2" y="2" width="236" height="216" rx="6" fill="rgba(249,115,22,0)"
+            style="transition:fill .8s ease"/>
+          <!-- Dividing line -->
+          <line id="divLine" x1="240" y1="2" x2="240" y2="218" stroke="#2d1b00" stroke-width="4"
+            stroke-dasharray="216" stroke-dashoffset="216" style="transition:stroke-dashoffset .6s ease"/>
+          <!-- Bracket for numerator (top) -->
+          <g id="numBracket" opacity="0" style="transition:opacity .4s ease">
+            <line x1="20" y1="-16" x2="220" y2="-16" stroke="#f97316" stroke-width="3"/>
+            <line x1="20" y1="-8" x2="20" y2="-24" stroke="#f97316" stroke-width="3"/>
+            <line x1="220" y1="-8" x2="220" y2="-24" stroke="#f97316" stroke-width="3"/>
+            <text x="120" y="-24" text-anchor="middle" font-size="18" fill="#f97316" font-weight="900" font-family="Nunito">取了 1 份</text>
+          </g>
+          <!-- Bracket for denominator (bottom) -->
+          <g id="denBracket" opacity="0" style="transition:opacity .4s ease">
+            <line x1="2" y1="240" x2="478" y2="240" stroke="#8b5cf6" stroke-width="3"/>
+            <line x1="2" y1="232" x2="2" y2="248" stroke="#8b5cf6" stroke-width="3"/>
+            <line x1="478" y1="232" x2="478" y2="248" stroke="#8b5cf6" stroke-width="3"/>
+            <text x="240" y="264" text-anchor="middle" font-size="18" fill="#8b5cf6" font-weight="900" font-family="Nunito">共 2 份</text>
+          </g>
+          <!-- "1 / 2" label inside -->
+          <text id="fracLabel" x="120" y="128" text-anchor="middle" font-size="80" fill="rgba(255,255,255,0)"
+            font-weight="900" font-family="Nunito" style="transition:fill .5s ease">1</text>
+          <text id="fracLabel2" x="360" y="128" text-anchor="middle" font-size="60" fill="rgba(45,27,0,0)"
+            font-weight="900" font-family="Nunito" style="transition:fill .5s ease">2</text>
+        </svg>
+      </div>
+      <!-- Fraction notation emerges after visual -->
+      <div class="frac-notation" id="fracNotation" style="opacity:0;transition:opacity .6s ease">
+        <div class="frac-n" style="color:var(--a1)" id="fn">1</div>
+        <div class="frac-bar"></div>
+        <div class="frac-d" style="color:var(--a2)" id="fd">2</div>
+        <div class="frac-name">读作：二分之一</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════ S4 COUNTING GAME ═══════════════════════════════════ -->
+<!-- Interactive: click portions to COUNT → fraction builds from counting -->
+<div class="slide" id="s4">
+  <div class="count-scene">
+    <div style="font-size:52px;font-weight:900">把这个方块分成 <span style="color:var(--a2)">4</span> 份，你要取几份？</div>
+    <div class="count-instruction">点击方块来选择份数 →</div>
+    <div style="display:flex;gap:60px;align-items:center">
+      <div>
+        <div class="count-portions" id="portions">
+          <div class="portion" onclick="selectPortion(0)" data-interactive>①</div>
+          <div class="portion" onclick="selectPortion(1)" data-interactive>②</div>
+          <div class="portion" onclick="selectPortion(2)" data-interactive>③</div>
+          <div class="portion" onclick="selectPortion(3)" data-interactive>④</div>
+        </div>
+        <div style="font-size:24px;color:rgba(45,27,0,.5);text-align:center;margin-top:8px">
+          共 4 份（分母）
+        </div>
+      </div>
+      <div style="font-size:60px;color:rgba(45,27,0,.3)">→</div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:0">
+        <div class="cf-n" style="color:var(--a1)" id="cfn">?</div>
+        <div class="cf-bar"></div>
+        <div class="cf-d" style="color:var(--a2)" id="cfd">4</div>
+        <div id="cfname" style="font-size:28px;font-weight:700;margin-top:16px;min-height:40px"></div>
+      </div>
+    </div>
+    <div class="count-labels">
+      <div class="count-label" style="color:var(--a1)">↑ 分子 = 你取了几份</div>
+      <div class="count-label" style="color:var(--a2)">↑ 分母 = 一共分了几份</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════ S5 SIZE COMPARISON ═══════════════════════════════════ -->
+<!-- The visual area difference IS the lesson — no text needed to explain which is bigger -->
+<div class="slide" id="s5">
+  <div class="cmp-scene">
+    <div class="cmp-title" style="text-align:center">分数的大小——用眼睛看出来</div>
+    <div class="cmp-bars">
+      <div class="cmp-unit" data-step="1">
+        <!-- ½ visual: rectangle split into 2, first half orange -->
+        <svg width="360" height="160" viewBox="0 0 360 160">
+          <rect x="2" y="2" width="356" height="156" rx="6" fill="rgba(249,115,22,0)" stroke="#2d1b00" stroke-width="3" id="half-bg"/>
+          <rect x="2" y="2" width="176" height="156" rx="6" fill="var(--a1)" id="half-fill"/>
+          <line x1="180" y1="2" x2="180" y2="158" stroke="#2d1b00" stroke-width="3"/>
+          <rect x="2" y="2" width="356" height="156" rx="6" fill="none" stroke="#2d1b00" stroke-width="3"/>
+        </svg>
+        <div class="cmp-label" style="color:var(--a1)">½</div>
+        <div class="cmp-desc">2份里 → 取1份</div>
+      </div>
+      <div style="font-size:80px;font-weight:900;color:var(--a1);align-self:center" data-step="2">&gt;</div>
+      <div class="cmp-unit" data-step="1">
+        <!-- ¼ visual: rectangle split into 4, first quarter purple -->
+        <svg width="360" height="160" viewBox="0 0 360 160">
+          <rect x="2" y="2" width="86" height="156" rx="6" fill="var(--a2)" id="qtr-fill"/>
+          <line x1="90" y1="2" x2="90" y2="158" stroke="#2d1b00" stroke-width="3"/>
+          <line x1="180" y1="2" x2="180" y2="158" stroke="#2d1b00" stroke-width="3"/>
+          <line x1="270" y1="2" x2="270" y2="158" stroke="#2d1b00" stroke-width="3"/>
+          <rect x="2" y="2" width="356" height="156" rx="6" fill="none" stroke="#2d1b00" stroke-width="3"/>
+        </svg>
+        <div class="cmp-label" style="color:var(--a2)">¼</div>
+        <div class="cmp-desc">4份里 → 取1份</div>
+      </div>
+    </div>
+    <div data-step="3" style="font-size:40px;font-weight:900;text-align:center;
+      background:#fef9c3;border:3px solid var(--a3);border-radius:16px;
+      padding:20px 60px;box-shadow:4px 4px 0 var(--a3)">
+      分母越大 → 每份越<strong style="color:var(--a2)">小</strong> → 取1份越<strong style="color:var(--a2)">小</strong>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════ S6 LIFE VISUALS ═══════════════════════════════════ -->
+<!-- Objects drawn as actual visual shapes showing the fraction -->
+<div class="slide" id="s6">
+  <div style="width:100%">
+    <div style="font-size:52px;font-weight:900;text-align:center;margin-bottom:40px">分数在你身边</div>
+    <div class="life-scene">
+      <!-- Clock showing ½ hour -->
+      <div class="life-item" data-step="1">
+        <div class="life-visual" style="width:160px;height:160px">
+          <svg viewBox="0 0 160 160" width="160" height="160">
+            <!-- Clock face -->
+            <circle cx="80" cy="80" r="76" fill="#fff" stroke="#2d1b00" stroke-width="4"/>
+            <!-- Half hour sector filled -->
+            <path d="M80,80 L80,4 A76,76 0 0,1 80,156 Z" fill="rgba(249,115,22,.7)"/>
+            <circle cx="80" cy="80" r="6" fill="#2d1b00"/>
+            <!-- Hour hand at 12 -->
+            <line x1="80" y1="80" x2="80" y2="20" stroke="#2d1b00" stroke-width="4" stroke-linecap="round"/>
+            <!-- Minute hand at 6 -->
+            <line x1="80" y1="80" x2="80" y2="140" stroke="#2d1b00" stroke-width="4" stroke-linecap="round"/>
+            <!-- 12 label -->
+            <text x="80" y="18" text-anchor="middle" font-size="14" font-weight="900" fill="#2d1b00" font-family="Nunito">12</text>
+            <text x="80" y="156" text-anchor="middle" font-size="14" font-weight="900" fill="#2d1b00" font-family="Nunito">6</text>
+          </svg>
+        </div>
+        <div class="life-frac" style="color:var(--a1)">½ 小时</div>
+        <div class="life-word">半圈 = 30分钟</div>
+      </div>
+      <!-- Cake showing ¼ -->
+      <div class="life-item" data-step="2">
+        <div class="life-visual" style="width:160px;height:160px">
+          <svg viewBox="0 0 160 160" width="160" height="160">
+            <circle cx="80" cy="80" r="76" fill="#fde68a" stroke="#2d1b00" stroke-width="4"/>
+            <!-- One quarter highlighted -->
+            <path d="M80,80 L80,4 A76,76 0 0,1 156,80 Z" fill="rgba(236,72,153,.75)"/>
+            <!-- Cut lines -->
+            <line x1="80" y1="4" x2="80" y2="80" stroke="#2d1b00" stroke-width="3"/>
+            <line x1="156" y1="80" x2="80" y2="80" stroke="#2d1b00" stroke-width="3"/>
+            <line x1="80" y1="156" x2="80" y2="80" stroke="#2d1b00" stroke-width="3"/>
+            <line x1="4" y1="80" x2="80" y2="80" stroke="#2d1b00" stroke-width="3"/>
+            <circle cx="80" cy="80" r="76" fill="none" stroke="#2d1b00" stroke-width="4"/>
+          </svg>
+        </div>
+        <div class="life-frac" style="color:var(--a4)">¼ 个蛋糕</div>
+        <div class="life-word">4人均分 = 你拿1块</div>
+      </div>
+      <!-- Ruler showing ¾ -->
+      <div class="life-item" data-step="3">
+        <div class="life-visual" style="width:220px;height:80px;margin:0 auto">
+          <svg viewBox="0 0 220 80" width="220" height="80">
+            <!-- Full ruler -->
+            <rect x="2" y="22" width="216" height="36" rx="4" fill="#e5e7eb" stroke="#2d1b00" stroke-width="3"/>
+            <!-- ¾ filled -->
+            <rect x="2" y="22" width="160" height="36" rx="4" fill="rgba(34,197,94,.75)"/>
+            <!-- Tick marks at quarters -->
+            <line x1="56" y1="22" x2="56" y2="58" stroke="#2d1b00" stroke-width="2"/>
+            <line x1="110" y1="22" x2="110" y2="58" stroke="#2d1b00" stroke-width="2"/>
+            <line x1="164" y1="22" x2="164" y2="58" stroke="#2d1b00" stroke-width="2"/>
+            <rect x="2" y="22" width="216" height="36" rx="4" fill="none" stroke="#2d1b00" stroke-width="3"/>
+            <text x="10" y="16" font-size="13" fill="#2d1b00" font-family="Nunito" font-weight="700">0</text>
+            <text x="200" y="16" font-size="13" fill="#2d1b00" font-family="Nunito" font-weight="700">1m</text>
+            <!-- Arrow showing ¾ -->
+            <line x1="164" y1="4" x2="164" y2="18" stroke="#16a34a" stroke-width="2"/>
+            <text x="170" y="14" font-size="14" fill="#16a34a" font-weight="900" font-family="Nunito">¾</text>
+          </svg>
+        </div>
+        <div class="life-frac" style="color:var(--a3)">¾ 米</div>
+        <div class="life-word">1米分4份，取3份</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════ S7 QUIZ ═══════════════════════════════════ -->
+<div class="slide" id="s7">
+  <div style="display:flex;flex-direction:column;align-items:center;gap:24px;width:100%">
+    <div class="quiz-prompt">哪个图形表示 <span>⅓</span>？</div>
+    <div class="quiz-opts">
+      <!-- Option A: wrong — 3 parts but unequal -->
+      <div class="qopt" onclick="qa(this,'w')" data-interactive>
+        <svg width="180" height="120" viewBox="0 0 180 120">
+          <rect x="2" y="2" width="176" height="116" rx="4" fill="none" stroke="#2d1b00" stroke-width="3"/>
+          <rect x="2" y="2" width="60" height="116" fill="#f97316" rx="4"/>
+          <line x1="62" y1="2" x2="62" y2="118" stroke="#2d1b00" stroke-width="3"/>
+          <line x1="140" y1="2" x2="140" y2="118" stroke="#2d1b00" stroke-width="3"/>
+          <text x="90" y="135" text-anchor="middle" font-size="16" fill="#c8432a" font-weight="900" font-family="Nunito">不等分 ✗</text>
+        </svg>
+      </div>
+      <!-- Option B: correct — 3 equal parts, 1 filled -->
+      <div class="qopt" onclick="qa(this,'c')" data-interactive style="border-width:4px">
+        <svg width="180" height="120" viewBox="0 0 180 120">
+          <rect x="2" y="2" width="176" height="116" rx="4" fill="#e5e7eb" stroke="#2d1b00" stroke-width="3"/>
+          <rect x="2" y="2" width="58" height="116" fill="#8b5cf6" rx="4"/>
+          <line x1="60" y1="2" x2="60" y2="118" stroke="#2d1b00" stroke-width="3"/>
+          <line x1="120" y1="2" x2="120" y2="118" stroke="#2d1b00" stroke-width="3"/>
+          <rect x="2" y="2" width="176" height="116" rx="4" fill="none" stroke="#2d1b00" stroke-width="3"/>
+          <text x="90" y="135" text-anchor="middle" font-size="16" fill="#22c55e" font-weight="900" font-family="Nunito">3等份取1份 ✓</text>
+        </svg>
+      </div>
+      <!-- Option C: wrong — 4 parts 1 filled (¼) -->
+      <div class="qopt" onclick="qa(this,'w')" data-interactive>
+        <svg width="180" height="120" viewBox="0 0 180 120">
+          <rect x="2" y="2" width="176" height="116" rx="4" fill="#e5e7eb" stroke="#2d1b00" stroke-width="3"/>
+          <rect x="2" y="2" width="43" height="116" fill="#ec4899" rx="4"/>
+          <line x1="45" y1="2" x2="45" y2="118" stroke="#2d1b00" stroke-width="3"/>
+          <line x1="90" y1="2" x2="90" y2="118" stroke="#2d1b00" stroke-width="3"/>
+          <line x1="135" y1="2" x2="135" y2="118" stroke="#2d1b00" stroke-width="3"/>
+          <rect x="2" y="2" width="176" height="116" rx="4" fill="none" stroke="#2d1b00" stroke-width="3"/>
+          <text x="90" y="135" text-anchor="middle" font-size="16" fill="#c8432a" font-weight="900" font-family="Nunito">4份，这是 ¼</text>
+        </svg>
+      </div>
+      <!-- Option D: wrong — circle only half filled -->
+      <div class="qopt" onclick="qa(this,'w')" data-interactive>
+        <svg width="180" height="120" viewBox="0 0 180 120">
+          <circle cx="90" cy="60" r="56" fill="#e5e7eb" stroke="#2d1b00" stroke-width="3"/>
+          <path d="M90,60 L90,4 A56,56 0 0,1 90,116 Z" fill="#f97316"/>
+          <line x1="90" y1="4" x2="90" y2="116" stroke="#2d1b00" stroke-width="3"/>
+          <text x="90" y="135" text-anchor="middle" font-size="16" fill="#c8432a" font-weight="900" font-family="Nunito">这是 ½</text>
+        </svg>
+      </div>
+    </div>
+    <div class="quiz-fb" id="qfb"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════ S8 SUMMARY ═══════════════════════════════════ -->
+<div class="slide" id="s8">
+  <div class="sum-scene">
+    <div class="sum-title">三个视觉记忆 🎉</div>
+    <div class="sum-visuals">
+      <!-- Key 1: equal division -->
+      <div class="sum-item" data-step="1">
+        <svg width="200" height="160" viewBox="0 0 200 160">
+          <rect x="2" y="22" width="196" height="116" rx="6" fill="#fde68a" stroke="#2d1b00" stroke-width="3"/>
+          <line x1="100" y1="22" x2="100" y2="138" stroke="#2d1b00" stroke-width="3"/>
+          <text x="100" y="18" text-anchor="middle" font-size="14" fill="#22c55e" font-weight="900" font-family="Nunito">✓ 平均分</text>
+        </svg>
+        <div class="sum-word" style="color:var(--a1)">平均分</div>
+        <div class="sum-key">每份大小完全相同</div>
+      </div>
+      <!-- Key 2: fraction notation with visual -->
+      <div class="sum-item" data-step="2">
+        <svg width="200" height="160" viewBox="0 0 200 160">
+          <rect x="2" y="22" width="196" height="116" rx="6" fill="#e5e7eb" stroke="#2d1b00" stroke-width="3"/>
+          <rect x="2" y="22" width="66" height="116" fill="#8b5cf6" rx="6"/>
+          <line x1="68" y1="22" x2="68" y2="138" stroke="#2d1b00" stroke-width="3"/>
+          <line x1="134" y1="22" x2="134" y2="138" stroke="#2d1b00" stroke-width="3"/>
+          <rect x="2" y="22" width="196" height="116" rx="6" fill="none" stroke="#2d1b00" stroke-width="3"/>
+          <text x="35" y="90" text-anchor="middle" font-size="28" fill="#fff" font-weight="900" font-family="Nunito">1</text>
+          <text x="35" y="16" text-anchor="middle" font-size="13" fill="#8b5cf6" font-weight="900" font-family="Nunito">↑分子</text>
+          <text x="100" y="155" text-anchor="middle" font-size="13" fill="#2d1b00" font-weight="900" font-family="Nunito">分母↑(3)</text>
+        </svg>
+        <div class="sum-word" style="color:var(--a2)">分子/分母</div>
+        <div class="sum-key">上取下总，中间画线</div>
+      </div>
+      <!-- Key 3: size comparison -->
+      <div class="sum-item" data-step="3">
+        <svg width="200" height="160" viewBox="0 0 200 160">
+          <rect x="2" y="22" width="196" height="52" rx="4" fill="#e5e7eb" stroke="#2d1b00" stroke-width="3"/>
+          <rect x="2" y="22" width="96" height="52" rx="4" fill="var(--a1)"/>
+          <line x1="100" y1="22" x2="100" y2="74" stroke="#2d1b00" stroke-width="2"/>
+          <rect x="2" y="22" width="196" height="52" rx="4" fill="none" stroke="#2d1b00" stroke-width="3"/>
+          <text x="50" y="55" text-anchor="middle" font-size="22" fill="#fff" font-weight="900" font-family="Nunito">½</text>
+          <rect x="2" y="88" width="196" height="52" rx="4" fill="#e5e7eb" stroke="#2d1b00" stroke-width="3"/>
+          <rect x="2" y="88" width="46" height="52" rx="4" fill="var(--a2)"/>
+          <line x1="50" y1="88" x2="50" y2="140" stroke="#2d1b00" stroke-width="2"/>
+          <line x1="100" y1="88" x2="100" y2="140" stroke="#2d1b00" stroke-width="2"/>
+          <line x1="150" y1="88" x2="150" y2="140" stroke="#2d1b00" stroke-width="2"/>
+          <rect x="2" y="88" width="196" height="52" rx="4" fill="none" stroke="#2d1b00" stroke-width="3"/>
+          <text x="26" y="121" text-anchor="middle" font-size="22" fill="#fff" font-weight="900" font-family="Nunito">¼</text>
+          <text x="170" y="90" text-anchor="end" font-size="28" fill="#c8432a" font-weight="900" font-family="Nunito">½&gt;¼</text>
+        </svg>
+        <div class="sum-word" style="color:var(--a3)">比大小</div>
+        <div class="sum-key">分母越大 → 每份越小</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+<div id="prog-wrap"><div id="prog"></div></div>
+<div id="ctr"></div>
+
+<script>
+function scaleCanvas(){
+  const d=document.getElementById('deck');
+  const W=+d.dataset.w||1920,H=+d.dataset.h||1080;
+  const s=Math.min(innerWidth/W,innerHeight/H);
+  d.style.cssText=`width:${W}px;height:${H}px;transform:scale(${s});transform-origin:top left;margin-left:${(innerWidth-W*s)/2}px;margin-top:${(innerHeight-H*s)/2}px`;
+}
+window.addEventListener('resize',scaleCanvas);scaleCanvas();
+
+const slides=[...document.querySelectorAll('.slide')];
+let cur=0,stepIdx=0;
+const stepsOf=sl=>[...sl.querySelectorAll('[data-step]')].sort((a,b)=>+a.dataset.step-+b.dataset.step);
+const updateUI=()=>{
+  document.getElementById('prog').style.width=((cur+1)/slides.length*100)+'%';
+  document.getElementById('ctr').textContent=(cur+1)+' / '+slides.length;
+};
+
+/* Per-slide enter animations */
+let s2step=0;
+function onEnter(i){
+  s2step=0;
+  if(i===2){ // S3: animate the fraction derivation
+    setTimeout(()=>{
+      // Step 1: dividing line draws
+      document.getElementById('divLine').style.strokeDashoffset='0';
+    },400);
+    setTimeout(()=>{
+      // Step 2: left half fills with color
+      document.getElementById('leftHalf').setAttribute('fill','rgba(249,115,22,0.75)');
+      document.getElementById('fracLabel').setAttribute('fill','white');
+    },1000);
+    setTimeout(()=>{
+      // Step 3: brackets appear
+      document.getElementById('numBracket').style.opacity='1';
+      document.getElementById('denBracket').style.opacity='1';
+    },1600);
+    setTimeout(()=>{
+      // Step 4: fraction notation appears
+      document.getElementById('fracNotation').style.opacity='1';
+    },2200);
+  }
+}
+
+/* S2 sequential animation (driven by advance clicks) */
+function doS2Step(){
+  if(s2step===0){
+    // Show unequal cut — WRONG
+    const uc=document.getElementById('uneqCut');
+    uc.style.opacity='1';
+    uc.style.transition='stroke-dashoffset .6s ease';
+    uc.style.strokeDashoffset='0';
+    document.getElementById('wrongTxt').style.opacity='1';
+    s2step=1;
+  } else if(s2step===1){
+    // Hide unequal, show equal cuts
+    document.getElementById('uneqCut').style.opacity='0';
+    document.getElementById('wrongTxt').style.opacity='0';
+    const h=document.getElementById('eqCutH'),v=document.getElementById('eqCutV');
+    h.style.transition='stroke-dashoffset .5s ease';v.style.transition='stroke-dashoffset .5s ease .3s';
+    h.style.strokeDashoffset='0';v.style.strokeDashoffset='0';
+    document.getElementById('rightTxt').style.opacity='1';
+    document.getElementById('qtr').style.opacity='1';
+    document.getElementById('s2lbl').textContent='平均分 ✓';
+    s2step=2;
+  } else if(s2step===2){
+    document.getElementById('s2insight1').style.opacity='1';
+    s2step=3;
+  } else if(s2step===3){
+    document.getElementById('s2insight2').style.opacity='1';
+    s2step=4;
+  } else {
+    return false; // signal: go to next slide
+  }
+  return true;
+}
+
+function gotoSlide(n){
+  if(n===cur)return;
+  const old=slides[cur];
+  cur=Math.max(0,Math.min(n,slides.length-1));
+  stepIdx=0;
+  const nsl=slides[cur];
+  old.classList.add('leaving');old.classList.remove('active');
+  nsl.style.display='flex';nsl.style.opacity='0';
+  nsl.getBoundingClientRect();
+  nsl.style.transition='opacity .48s ease';nsl.style.opacity='1';
+  nsl.classList.add('active');
+  stepsOf(nsl).forEach(e=>e.classList.remove('on'));
+  updateUI();onEnter(cur);
+  setTimeout(()=>{old.classList.remove('leaving');old.style.display='';nsl.style.transition='';nsl.style.opacity=''},520);
+}
+function advance(){
+  if(cur===1){ // S2: special sequential animation
+    if(doS2Step()) return;
+    gotoSlide(2); return;
+  }
+  const steps=stepsOf(slides[cur]);
+  if(stepIdx<steps.length){
+    const sv=steps[stepIdx].dataset.step;
+    steps.filter(e=>e.dataset.step===sv).forEach(e=>e.classList.add('on'));
+    while(stepIdx<steps.length&&steps[stepIdx].dataset.step===sv)stepIdx++;
+  }else if(cur<slides.length-1){gotoSlide(cur+1)}
+}
+function retreat(){if(cur>0)gotoSlide(cur-1)}
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight'||e.key===' '){e.preventDefault();advance()}
+  if(e.key==='ArrowLeft'){e.preventDefault();retreat()}
+  if(e.key==='f')document.documentElement.requestFullscreen?.()
+});
+document.addEventListener('click',e=>{if(!e.target.closest('[data-interactive],button,a,input'))advance()});
+let tx=0;
+document.addEventListener('touchstart',e=>{tx=e.touches[0].clientX});
+document.addEventListener('touchend',e=>{const dx=e.changedTouches[0].clientX-tx;if(Math.abs(dx)>50){dx<0?advance():retreat()}});
+
+/* S4 interactive counting */
+let selected=new Set();
+const names=['一','二','三','四'];
+function selectPortion(i){
+  const ps=document.querySelectorAll('.portion');
+  if(selected.has(i)){selected.delete(i);ps[i].classList.remove('sel')}
+  else{selected.add(i);ps[i].classList.add('sel')}
+  const n=selected.size;
+  document.getElementById('cfn').textContent=n||'?';
+  document.getElementById('cfd').textContent='4';
+  const map=['','一四分之一','二四分之二','四分之三','四四分之四'];
+  const vmap=['','四分之一','四分之二','四分之三','四四分之四=1'];
+  document.getElementById('cfname').textContent=n?vmap[n]:'';
+}
+
+/* Quiz */
+function qa(el,t){
+  document.querySelectorAll('.qopt').forEach(o=>o.classList.remove('correct','wrong'));
+  el.classList.add(t==='c'?'correct':'wrong');
+  const fb=document.getElementById('qfb');
+  if(t==='c'){fb.textContent='🎉 答对了！3等份取1份 = ⅓';fb.style.color='var(--a3)'}
+  else{fb.textContent='仔细看图——要先平均分，再取1份 😊';fb.style.color='var(--a1)'}
+}
+
+onEnter(0);updateUI();
+</script>
+</body>
+</html>

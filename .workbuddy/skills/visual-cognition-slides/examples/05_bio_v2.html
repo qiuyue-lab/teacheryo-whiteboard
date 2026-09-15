@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>细胞结构 v2 · 图即信息</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;700&family=IBM+Plex+Mono&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#fafafa;--ink:#0a0a0a;--a1:#2563eb;--a2:#dc2626;--a3:#16a34a;--a4:#7c3aed;--dim:#6b7280;--border:#d1d5db}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100%;background:#111;overflow:hidden;font-family:'IBM Plex Sans',sans-serif}
+#deck{position:absolute;background:var(--bg);overflow:hidden}
+.slide{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  padding:48px 72px;opacity:0;transition:opacity .48s ease;z-index:1}
+.slide.active{opacity:1;z-index:2}
+.slide.leaving{display:flex!important;opacity:0;pointer-events:none;z-index:1}
+[data-step]{opacity:0;transition:opacity .4s ease,transform .4s ease;transform:translateY(12px)}
+[data-step].on{opacity:1;transform:translateY(0)}
+#prog-wrap{position:absolute;bottom:0;left:0;right:0;height:3px;background:var(--border);z-index:100}
+#prog{height:100%;background:var(--a1);transition:width .3s ease}
+#ctr{position:absolute;top:16px;right:24px;font-family:'IBM Plex Mono',monospace;font-size:14px;color:var(--dim);z-index:100}
+.mono{font-family:'IBM Plex Mono',monospace}
+.card{background:#fff;border:1px solid var(--border);border-radius:4px;box-shadow:0 2px 8px rgba(0,0,0,.05)}
+</style>
+</head>
+<body>
+<div id="deck" data-w="1920" data-h="1080">
+
+<!-- S1 COVER -->
+<div class="slide active">
+  <div style="display:flex;gap:80px;align-items:center;width:100%;position:relative;z-index:1">
+    <div style="flex:1">
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:18px;color:var(--dim);letter-spacing:2px;margin-bottom:20px">HIGH SCHOOL BIOLOGY · CH.3</div>
+      <div style="font-size:96px;font-weight:700;line-height:1;color:var(--ink)">细胞结构</div>
+      <div style="font-size:36px;color:var(--dim);margin-top:16px">生命的基本单位——从图看懂</div>
+      <div style="margin-top:32px;font-family:'IBM Plex Mono',monospace;font-size:20px;color:var(--a1);
+        background:#eff6ff;border:1px solid #bfdbfe;padding:16px 24px;border-radius:4px;display:inline-block">
+        目标：看图认结构 → 对比差异 → 理解功能
+      </div>
+    </div>
+    <!-- Cover: annotated cell visual -->
+    <div style="flex:0 0 560px">
+      <svg width="560" height="480" viewBox="0 0 560 480">
+        <!-- Plant cell (cover decoration) -->
+        <rect x="40" y="40" width="480" height="400" rx="8" fill="#f1f8e9" stroke="#5d4037" stroke-width="5"/>
+        <rect x="54" y="54" width="452" height="372" rx="6" fill="none" stroke="#66bb6a" stroke-width="3" stroke-dasharray="10,6"/>
+        <!-- Nucleus -->
+        <ellipse cx="200" cy="220" rx="90" ry="80" fill="#fff9c4" stroke="#f9a825" stroke-width="3"/>
+        <text x="200" y="226" text-anchor="middle" font-size="18" fill="#f9a825" font-weight="700" font-family="IBM Plex Sans">细胞核</text>
+        <!-- Vacuole -->
+        <ellipse cx="370" cy="160" rx="90" ry="80" fill="#e3f2fd" stroke="#42a5f5" stroke-width="3"/>
+        <text x="370" y="166" text-anchor="middle" font-size="16" fill="#42a5f5" font-weight="700" font-family="IBM Plex Sans">液泡</text>
+        <!-- Chloroplasts -->
+        <ellipse cx="130" cy="340" rx="36" ry="18" fill="#66bb6a" stroke="#388e3c" stroke-width="2"/>
+        <text x="130" y="382" text-anchor="middle" font-size="14" fill="#388e3c" font-family="IBM Plex Sans">叶绿体</text>
+        <!-- Mitochondria -->
+        <ellipse cx="420" cy="330" rx="30" ry="16" fill="#ef9a9a" stroke="#e53935" stroke-width="2"/>
+        <text x="420" y="366" text-anchor="middle" font-size="14" fill="#e53935" font-family="IBM Plex Sans">线粒体</text>
+        <!-- Cell wall label -->
+        <line x1="44" y1="240" x2="0" y2="240" stroke="#5d4037" stroke-width="2"/>
+        <text x="-4" y="237" text-anchor="end" font-size="14" fill="#5d4037" font-weight="700" font-family="IBM Plex Sans">细胞壁</text>
+      </svg>
+    </div>
+  </div>
+</div>
+
+<!-- S2 WHY CELLS — with scale visual (size comparison) -->
+<div class="slide">
+  <div style="display:flex;flex-direction:column;gap:32px;width:100%">
+    <div style="font-size:52px;font-weight:700;text-align:center">为什么细胞是生命基本单位？</div>
+    <div style="display:flex;gap:48px;align-items:center;width:100%">
+      <!-- Scale comparison visual -->
+      <div style="flex:0 0 500px">
+        <svg width="500" height="360" viewBox="0 0 500 360">
+          <!-- Title -->
+          <text x="250" y="22" text-anchor="middle" font-size="18" fill="#6b7280" font-family="IBM Plex Sans">大小对比（示意）</text>
+          <!-- Scale bar at bottom -->
+          <line x1="40" y1="340" x2="460" y2="340" stroke="#d1d5db" stroke-width="2"/>
+          <!-- Human cell (large circle ~100μm) -->
+          <circle cx="100" cy="200" r="90" fill="rgba(37,99,235,.08)" stroke="#2563eb" stroke-width="2"/>
+          <circle cx="100" cy="200" r="40" fill="#fff9c4" stroke="#f9a825" stroke-width="2"/>
+          <text x="100" y="205" text-anchor="middle" font-size="16" fill="#2563eb" font-weight="700" font-family="IBM Plex Sans">人类细胞</text>
+          <text x="100" y="308" text-anchor="middle" font-size="14" fill="#2563eb" font-family="IBM Plex Mono">~100 μm</text>
+          <!-- Bacteria (small ~2μm) -->
+          <ellipse cx="290" cy="220" rx="16" ry="8" fill="#fde68a" stroke="#d97706" stroke-width="2"/>
+          <text x="290" y="260" text-anchor="middle" font-size="14" fill="#d97706" font-weight="700" font-family="IBM Plex Sans">细菌</text>
+          <text x="290" y="278" text-anchor="middle" font-size="13" fill="#d97706" font-family="IBM Plex Mono">~2 μm</text>
+          <!-- Virus (dot ~0.1μm) -->
+          <circle cx="390" cy="224" r="4" fill="#7c3aed" stroke="#7c3aed" stroke-width="1"/>
+          <text x="390" y="260" text-anchor="middle" font-size="14" fill="#7c3aed" font-weight="700" font-family="IBM Plex Sans">病毒</text>
+          <text x="390" y="278" text-anchor="middle" font-size="13" fill="#7c3aed" font-family="IBM Plex Mono">~0.1 μm</text>
+          <!-- Cannot be seen without microscope annotation -->
+          <text x="250" y="330" text-anchor="middle" font-size="14" fill="#6b7280" font-family="IBM Plex Sans">← 以上均需显微镜观察 →</text>
+        </svg>
+      </div>
+      <div style="flex:1;display:flex;flex-direction:column;gap:24px">
+        <div class="card" style="padding:28px 32px" data-step="1">
+          <div style="font-size:36px;font-weight:700;color:var(--a1);margin-bottom:10px">① 能独立完成生命活动</div>
+          <div style="font-size:22px;color:var(--dim);line-height:1.6">细胞可以独立：摄食 → 代谢 → 分裂 → 感应<br>低于细胞层次的单位（细胞器）不能独立存活</div>
+        </div>
+        <div class="card" style="padding:28px 32px" data-step="2">
+          <div style="font-size:36px;font-weight:700;color:var(--a3);margin-bottom:10px">② 结构决定功能</div>
+          <div style="font-size:22px;color:var(--dim);line-height:1.6">每种细胞的形态直接对应其功能<br>红细胞圆盘形 → 堆叠传氧；神经细胞长突起 → 传导信号</div>
+        </div>
+        <div class="card" style="padding:28px 32px" data-step="3">
+          <div style="font-size:36px;font-weight:700;color:var(--a2);margin-bottom:10px">③ 疾病发生在细胞层次</div>
+          <div style="font-size:22px;color:var(--dim);line-height:1.6">癌症 = 细胞分裂失控 &nbsp;|&nbsp; 感染 = 病原体侵入细胞<br>治疗 = 作用于细胞</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- S3 PLANT CELL — labeled diagram (labels INSIDE/ON the diagram, not a separate list) -->
+<div class="slide" id="s3">
+  <div style="display:flex;gap:40px;align-items:center;width:100%">
+    <div style="font-size:52px;font-weight:700;writing-mode:vertical-rl;
+      text-orientation:mixed;letter-spacing:4px;color:var(--ink);flex-shrink:0">植物细胞</div>
+    <!-- THE DIAGRAM IS THE CONTENT — labels are arrows pointing inside the diagram -->
+    <svg id="plantCell" width="1400" height="700" viewBox="0 0 1400 700" style="flex:1;max-width:1400px">
+      <!-- ══ CELL WALL (outermost) ══ -->
+      <rect x="100" y="40" width="820" height="620" rx="12"
+        fill="#f1f8e9" stroke="#5d4037" stroke-width="8" id="cw"/>
+      <!-- Cell wall label: arrow from wall to label area -->
+      <g id="lbl-cw" opacity="0" style="transition:opacity .4s ease">
+        <line x1="100" y1="200" x2="60" y2="200" stroke="#5d4037" stroke-width="2"/>
+        <rect x="960" y="40" width="280" height="80" rx="4" fill="#efebe9" stroke="#5d4037" stroke-width="2"/>
+        <text x="1100" y="72" text-anchor="middle" font-size="22" font-weight="700" fill="#5d4037" font-family="IBM Plex Sans">细胞壁</text>
+        <text x="1100" y="96" text-anchor="middle" font-size="16" fill="#6b7280" font-family="IBM Plex Sans">纤维素 · 保护支撑</text>
+        <line x1="920" y1="80" x2="100" y2="180" stroke="#5d4037" stroke-width="1.5" stroke-dasharray="6,4"/>
+      </g>
+      <!-- ══ CELL MEMBRANE (dashed, just inside wall) ══ -->
+      <rect x="116" y="56" width="788" height="588" rx="10"
+        fill="none" stroke="#66bb6a" stroke-width="3" stroke-dasharray="12,6" id="cm"/>
+      <g id="lbl-cm" opacity="0" style="transition:opacity .4s ease">
+        <rect x="960" y="140" width="280" height="80" rx="4" fill="#f0fdf4" stroke="#66bb6a" stroke-width="2"/>
+        <text x="1100" y="172" text-anchor="middle" font-size="22" font-weight="700" fill="#16a34a" font-family="IBM Plex Sans">细胞膜</text>
+        <text x="1100" y="196" text-anchor="middle" font-size="16" fill="#6b7280" font-family="IBM Plex Sans">选择透过性 · 控制进出</text>
+        <line x1="960" y1="180" x2="300" y2="100" stroke="#66bb6a" stroke-width="1.5" stroke-dasharray="6,4"/>
+      </g>
+      <!-- ══ LARGE VACUOLE (top right) ══ -->
+      <ellipse cx="680" cy="220" rx="150" ry="130" fill="#e3f2fd" stroke="#42a5f5" stroke-width="4" id="vac"/>
+      <g id="lbl-vac" opacity="0" style="transition:opacity .4s ease">
+        <text x="680" y="208" text-anchor="middle" font-size="20" font-weight="700" fill="#0288d1" font-family="IBM Plex Sans">液泡</text>
+        <text x="680" y="232" text-anchor="middle" font-size="16" fill="#0288d1" font-family="IBM Plex Sans">（植物特有）</text>
+        <rect x="960" y="240" width="280" height="96" rx="4" fill="#e3f2fd" stroke="#42a5f5" stroke-width="2"/>
+        <text x="1100" y="272" text-anchor="middle" font-size="22" font-weight="700" fill="#0288d1" font-family="IBM Plex Sans">中央液泡</text>
+        <text x="1100" y="296" text-anchor="middle" font-size="16" fill="#6b7280" font-family="IBM Plex Sans">储水·色素·废物·维持膨压</text>
+        <line x1="960" y1="280" x2="830" y2="220" stroke="#42a5f5" stroke-width="1.5" stroke-dasharray="6,4"/>
+      </g>
+      <!-- ══ NUCLEUS (center left) ══ -->
+      <ellipse cx="320" cy="360" rx="140" ry="120" fill="#fff9c4" stroke="#f9a825" stroke-width="4" id="nuc"/>
+      <!-- Nucleolus inside -->
+      <circle cx="320" cy="348" r="32" fill="#fde68a" stroke="#f9a825" stroke-width="2.5"/>
+      <g id="lbl-nuc" opacity="0" style="transition:opacity .4s ease">
+        <text x="320" y="342" text-anchor="middle" font-size="14" fill="#c67b00" font-family="IBM Plex Sans">核仁</text>
+        <text x="320" y="376" text-anchor="middle" font-size="20" font-weight="700" fill="#c67b00" font-family="IBM Plex Sans">细胞核</text>
+        <rect x="960" y="356" width="280" height="96" rx="4" fill="#fef9c3" stroke="#f9a825" stroke-width="2"/>
+        <text x="1100" y="388" text-anchor="middle" font-size="22" font-weight="700" fill="#c67b00" font-family="IBM Plex Sans">细胞核</text>
+        <text x="1100" y="412" text-anchor="middle" font-size="16" fill="#6b7280" font-family="IBM Plex Sans">含DNA · 遗传信息 · 代谢指挥</text>
+        <line x1="960" y1="400" x2="462" y2="360" stroke="#f9a825" stroke-width="1.5" stroke-dasharray="6,4"/>
+      </g>
+      <!-- ══ CHLOROPLASTS (3 green ovals, lower area) ══ -->
+      <ellipse cx="200" cy="540" rx="52" ry="26" fill="#66bb6a" stroke="#388e3c" stroke-width="3" id="chl1"/>
+      <ellipse cx="320" cy="570" rx="52" ry="26" fill="#66bb6a" stroke="#388e3c" stroke-width="3" id="chl2"/>
+      <ellipse cx="240" cy="590" rx="48" ry="22" fill="#66bb6a" stroke="#388e3c" stroke-width="3" id="chl3"/>
+      <g id="lbl-chl" opacity="0" style="transition:opacity .4s ease">
+        <rect x="960" y="472" width="280" height="96" rx="4" fill="#f0fdf4" stroke="#388e3c" stroke-width="2"/>
+        <text x="1100" y="504" text-anchor="middle" font-size="22" font-weight="700" fill="#16a34a" font-family="IBM Plex Sans">叶绿体</text>
+        <text x="1100" y="528" text-anchor="middle" font-size="16" fill="#6b7280" font-family="IBM Plex Sans">（植物特有）光合作用场所</text>
+        <text x="1100" y="552" text-anchor="middle" font-size="16" fill="#6b7280" font-family="IBM Plex Sans">光能 → 化学能 + O₂</text>
+        <line x1="960" y1="520" x2="374" y2="570" stroke="#388e3c" stroke-width="1.5" stroke-dasharray="6,4"/>
+      </g>
+      <!-- ══ MITOCHONDRIA (2 red ovals, right area) ══ -->
+      <ellipse cx="700" cy="490" rx="48" ry="24" fill="#ef9a9a" stroke="#e53935" stroke-width="3" id="mit1"/>
+      <ellipse cx="760" cy="560" rx="44" ry="22" fill="#ef9a9a" stroke="#e53935" stroke-width="3" id="mit2"/>
+      <g id="lbl-mit" opacity="0" style="transition:opacity .4s ease">
+        <rect x="960" y="588" width="280" height="80" rx="4" fill="#fff1f2" stroke="#e53935" stroke-width="2"/>
+        <text x="1100" y="620" text-anchor="middle" font-size="22" font-weight="700" fill="#dc2626" font-family="IBM Plex Sans">线粒体</text>
+        <text x="1100" y="644" text-anchor="middle" font-size="16" fill="#6b7280" font-family="IBM Plex Sans">有氧呼吸 · 产生ATP能量</text>
+        <line x1="960" y1="628" x2="808" y2="560" stroke="#e53935" stroke-width="1.5" stroke-dasharray="6,4"/>
+      </g>
+    </svg>
+  </div>
+</div>
+
+<!-- S4 ANIMAL CELL — labeled diagram -->
+<div class="slide" id="s4">
+  <div style="display:flex;gap:40px;align-items:center;width:100%">
+    <div style="font-size:52px;font-weight:700;writing-mode:vertical-rl;text-orientation:mixed;
+      letter-spacing:4px;color:var(--ink);flex-shrink:0">动物细胞</div>
+    <svg id="animalCell" width="1400" height="700" viewBox="0 0 1400 700" style="flex:1">
+      <!-- Cell membrane (irregular oval, NO cell wall) -->
+      <ellipse cx="480" cy="360" rx="380" ry="320"
+        fill="#fce4ec" stroke="#7b1fa2" stroke-width="5" stroke-dasharray="0" id="acm"/>
+      <g id="albl-cm" opacity="0" style="transition:opacity .4s ease">
+        <rect x="960" y="40" width="300" height="96" rx="4" fill="#fce4ec" stroke="#7b1fa2" stroke-width="2"/>
+        <text x="1110" y="72" text-anchor="middle" font-size="22" font-weight="700" fill="#7b1fa2" font-family="IBM Plex Sans">细胞膜</text>
+        <text x="1110" y="96" text-anchor="middle" font-size="16" fill="#6b7280" font-family="IBM Plex Sans">柔软灵活 · 无细胞壁</text>
+        <text x="1110" y="116" text-anchor="middle" font-size="16" fill="#dc2626" font-family="IBM Plex Sans">✗ 无细胞壁</text>
+        <line x1="960" y1="88" x2="860" y2="200" stroke="#7b1fa2" stroke-width="1.5" stroke-dasharray="6,4"/>
+      </g>
+      <!-- Nucleus (large oval) -->
+      <ellipse cx="440" cy="340" rx="140" ry="120" fill="#fff9c4" stroke="#f9a825" stroke-width="4" id="anuc"/>
+      <circle cx="440" cy="328" r="36" fill="#fde68a" stroke="#f9a825" stroke-width="2.5"/>
+      <g id="albl-nuc" opacity="0" style="transition:opacity .4s ease">
+        <text x="440" y="322" text-anchor="middle" font-size="14" fill="#c67b00" font-family="IBM Plex Sans">核仁</text>
+        <text x="440" y="358" text-anchor="middle" font-size="20" font-weight="700" fill="#c67b00" font-family="IBM Plex Sans">细胞核</text>
+        <rect x="960" y="156" width="300" height="80" rx="4" fill="#fef9c3" stroke="#f9a825" stroke-width="2"/>
+        <text x="1110" y="188" text-anchor="middle" font-size="22" font-weight="700" fill="#c67b00" font-family="IBM Plex Sans">细胞核</text>
+        <text x="1110" y="212" text-anchor="middle" font-size="16" fill="#6b7280" font-family="IBM Plex Sans">含DNA · 同植物细胞</text>
+        <line x1="960" y1="196" x2="582" y2="340" stroke="#f9a825" stroke-width="1.5" stroke-dasharray="6,4"/>
+      </g>
+      <!-- Mitochondria (multiple) -->
+      <ellipse cx="240" cy="250" rx="46" ry="22" fill="#ef9a9a" stroke="#e53935" stroke-width="3" id="amit1"/>
+      <ellipse cx="680" cy="280" rx="42" ry="20" fill="#ef9a9a" stroke="#e53935" stroke-width="3" id="amit2"/>
+      <ellipse cx="620" cy="470" rx="46" ry="22" fill="#ef9a9a" stroke="#e53935" stroke-width="3" id="amit3"/>
+      <ellipse cx="240" cy="470" rx="40" ry="20" fill="#ef9a9a" stroke="#e53935" stroke-width="3" id="amit4"/>
+      <g id="albl-mit" opacity="0" style="transition:opacity .4s ease">
+        <rect x="960" y="256" width="300" height="80" rx="4" fill="#fff1f2" stroke="#e53935" stroke-width="2"/>
+        <text x="1110" y="288" text-anchor="middle" font-size="22" font-weight="700" fill="#dc2626" font-family="IBM Plex Sans">线粒体（多）</text>
+        <text x="1110" y="312" text-anchor="middle" font-size="16" fill="#6b7280" font-family="IBM Plex Sans">动物耗能大 · 数量更多</text>
+        <line x1="960" y1="296" x2="726" y2="280" stroke="#e53935" stroke-width="1.5" stroke-dasharray="6,4"/>
+      </g>
+      <!-- Lysosomes (small purple circles, animal only) -->
+      <circle cx="320" cy="190" r="22" fill="#ce93d8" stroke="#7b1fa2" stroke-width="2.5" id="lys1"/>
+      <circle cx="650" cy="180" r="20" fill="#ce93d8" stroke="#7b1fa2" stroke-width="2.5" id="lys2"/>
+      <circle cx="700" cy="400" r="18" fill="#ce93d8" stroke="#7b1fa2" stroke-width="2.5" id="lys3"/>
+      <g id="albl-lys" opacity="0" style="transition:opacity .4s ease">
+        <rect x="960" y="356" width="300" height="96" rx="4" fill="#f5e6ff" stroke="#7b1fa2" stroke-width="2"/>
+        <text x="1110" y="388" text-anchor="middle" font-size="22" font-weight="700" fill="#7c3aed" font-family="IBM Plex Sans">溶酶体</text>
+        <text x="1110" y="412" text-anchor="middle" font-size="16" fill="#6b7280" font-family="IBM Plex Sans">（动物特有）</text>
+        <text x="1110" y="436" text-anchor="middle" font-size="16" fill="#6b7280" font-family="IBM Plex Sans">消化废物 · 抗感染</text>
+        <line x1="960" y1="404" x2="720" y2="398" stroke="#7b1fa2" stroke-width="1.5" stroke-dasharray="6,4"/>
+      </g>
+      <!-- Centrosome (small orange, animal only) -->
+      <circle cx="480" cy="200" r="14" fill="#ff8a65" stroke="#e64a19" stroke-width="2.5" id="cen"/>
+      <g id="albl-cen" opacity="0" style="transition:opacity .4s ease">
+        <rect x="960" y="472" width="300" height="96" rx="4" fill="#fff3e0" stroke="#e64a19" stroke-width="2"/>
+        <text x="1110" y="504" text-anchor="middle" font-size="22" font-weight="700" fill="#e64a19" font-family="IBM Plex Sans">中心体</text>
+        <text x="1110" y="528" text-anchor="middle" font-size="16" fill="#6b7280" font-family="IBM Plex Sans">（动物特有）</text>
+        <text x="1110" y="552" text-anchor="middle" font-size="16" fill="#6b7280" font-family="IBM Plex Sans">参与有丝分裂纺锤丝形成</text>
+        <line x1="960" y1="520" x2="494" y2="204" stroke="#e64a19" stroke-width="1.5" stroke-dasharray="6,4"/>
+      </g>
+      <!-- NO chloroplast, NO large vacuole indicators -->
+      <g id="albl-no" opacity="0" style="transition:opacity .4s ease">
+        <rect x="960" y="588" width="300" height="80" rx="4" fill="#fef2f2" stroke="#dc2626" stroke-width="2"/>
+        <text x="1110" y="622" text-anchor="middle" font-size="22" font-weight="700" fill="#dc2626" font-family="IBM Plex Sans">✗ 无叶绿体</text>
+        <text x="1110" y="652" text-anchor="middle" font-size="18" fill="#dc2626" font-family="IBM Plex Sans">✗ 无大型液泡</text>
+      </g>
+    </svg>
+  </div>
+</div>
+
+<!-- S5 COMPARISON VISUAL — two cells side-by-side with highlighted differences -->
+<div class="slide" id="s5">
+  <div style="display:flex;flex-direction:column;gap:24px;width:100%">
+    <div style="font-size:52px;font-weight:700;text-align:center">动物 vs 植物——差异就在图里</div>
+    <div style="display:flex;gap:32px;align-items:stretch;width:100%">
+      <!-- Mini plant cell with highlighted unique parts -->
+      <div style="flex:1;border:1px solid var(--border);border-radius:4px;background:#fff;padding:24px;display:flex;flex-direction:column;gap:12px">
+        <div style="font-size:30px;font-weight:700;color:var(--a3);text-align:center">🌿 植物细胞</div>
+        <svg width="100%" height="260" viewBox="0 0 380 260">
+          <!-- Cell wall (unique) highlighted -->
+          <rect x="10" y="10" width="360" height="240" rx="6" fill="#f1f8e9" stroke="#5d4037" stroke-width="6" id="pc-cw"/>
+          <!-- Cell membrane -->
+          <rect x="22" y="22" width="336" height="216" rx="4" fill="none" stroke="#66bb6a" stroke-width="2" stroke-dasharray="8,4"/>
+          <!-- Nucleus -->
+          <ellipse cx="140" cy="130" rx="80" ry="68" fill="#fff9c4" stroke="#f9a825" stroke-width="3"/>
+          <!-- Large vacuole (unique) highlighted -->
+          <ellipse cx="290" cy="100" rx="68" ry="60" fill="#e3f2fd" stroke="#42a5f5" stroke-width="5" id="pc-vac"/>
+          <!-- Chloroplasts (unique) highlighted -->
+          <ellipse cx="80" cy="198" rx="36" ry="16" fill="#66bb6a" stroke="#388e3c" stroke-width="4" id="pc-chl1"/>
+          <ellipse cx="155" cy="214" rx="32" ry="14" fill="#66bb6a" stroke="#388e3c" stroke-width="4" id="pc-chl2"/>
+          <!-- Mitochondria -->
+          <ellipse cx="285" cy="188" rx="30" ry="14" fill="#ef9a9a" stroke="#e53935" stroke-width="2"/>
+          <!-- Labels -->
+          <text x="20" y="8" font-size="11" fill="#5d4037" font-weight="700" font-family="IBM Plex Mono">★ 细胞壁</text>
+          <text x="234" y="44" font-size="11" fill="#0288d1" font-weight="700" font-family="IBM Plex Mono">★ 液泡</text>
+          <text x="62" y="228" font-size="11" fill="#388e3c" font-weight="700" font-family="IBM Plex Mono">★ 叶绿体</text>
+        </svg>
+        <!-- Unique features -->
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <div style="font-size:20px;font-weight:700;color:var(--a3)">★ 独有结构：</div>
+          <div style="display:flex;gap:12px">
+            <span style="background:#efebe9;border:2px solid #5d4037;padding:6px 14px;border-radius:4px;font-size:18px;font-weight:700">细胞壁</span>
+            <span style="background:#e3f2fd;border:2px solid #42a5f5;padding:6px 14px;border-radius:4px;font-size:18px;font-weight:700">液泡</span>
+            <span style="background:#f1f8e9;border:2px solid #388e3c;padding:6px 14px;border-radius:4px;font-size:18px;font-weight:700">叶绿体</span>
+          </div>
+        </div>
+      </div>
+      <!-- Shared structures (both have) -->
+      <div style="flex:0 0 200px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px">
+        <div style="font-size:22px;font-weight:700;color:var(--dim);text-align:center">共有</div>
+        <div style="display:flex;flex-direction:column;gap:8px;width:100%">
+          <div style="background:#f9fafb;border:1px solid var(--border);padding:10px;text-align:center;font-size:17px;font-weight:700;border-radius:4px">细胞膜</div>
+          <div style="background:#f9fafb;border:1px solid var(--border);padding:10px;text-align:center;font-size:17px;font-weight:700;border-radius:4px">细胞核</div>
+          <div style="background:#fff1f2;border:1px solid #fca5a5;padding:10px;text-align:center;font-size:17px;font-weight:700;border-radius:4px">线粒体</div>
+          <div style="background:#f9fafb;border:1px solid var(--border);padding:10px;text-align:center;font-size:17px;font-weight:700;border-radius:4px">核糖体</div>
+          <div style="background:#f9fafb;border:1px solid var(--border);padding:10px;text-align:center;font-size:17px;font-weight:700;border-radius:4px">内质网</div>
+        </div>
+      </div>
+      <!-- Mini animal cell with highlighted unique parts -->
+      <div style="flex:1;border:1px solid var(--border);border-radius:4px;background:#fff;padding:24px;display:flex;flex-direction:column;gap:12px">
+        <div style="font-size:30px;font-weight:700;color:var(--a4);text-align:center">🐾 动物细胞</div>
+        <svg width="100%" height="260" viewBox="0 0 380 260">
+          <!-- Cell membrane (irregular, no wall) -->
+          <ellipse cx="190" cy="130" rx="170" ry="120" fill="#fce4ec" stroke="#7b1fa2" stroke-width="4"/>
+          <!-- Nucleus -->
+          <ellipse cx="160" cy="120" rx="90" ry="76" fill="#fff9c4" stroke="#f9a825" stroke-width="3"/>
+          <!-- Mitochondria (multiple) -->
+          <ellipse cx="60" cy="90" rx="32" ry="16" fill="#ef9a9a" stroke="#e53935" stroke-width="2"/>
+          <ellipse cx="310" cy="110" rx="32" ry="14" fill="#ef9a9a" stroke="#e53935" stroke-width="2"/>
+          <ellipse cx="280" cy="200" rx="32" ry="14" fill="#ef9a9a" stroke="#e53935" stroke-width="2"/>
+          <!-- Lysosomes (unique) highlighted -->
+          <circle cx="80" cy="180" r="18" fill="#ce93d8" stroke="#7b1fa2" stroke-width="4" id="ac-lys1"/>
+          <circle cx="320" cy="180" r="16" fill="#ce93d8" stroke="#7b1fa2" stroke-width="4" id="ac-lys2"/>
+          <!-- Centrosome (unique) highlighted -->
+          <circle cx="180" cy="50" r="12" fill="#ff8a65" stroke="#e64a19" stroke-width="4" id="ac-cen"/>
+          <!-- Labels -->
+          <text x="140" y="44" font-size="11" fill="#e64a19" font-weight="700" font-family="IBM Plex Mono">★ 中心体</text>
+          <text x="58" y="210" font-size="11" fill="#7b1fa2" font-weight="700" font-family="IBM Plex Mono">★ 溶酶体</text>
+          <!-- NO cell wall callout -->
+          <text x="190" y="252" text-anchor="middle" font-size="12" fill="#dc2626" font-weight="700" font-family="IBM Plex Mono">✗ 无细胞壁 ✗ 无叶绿体 ✗ 无大液泡</text>
+        </svg>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <div style="font-size:20px;font-weight:700;color:var(--a4)">★ 独有结构：</div>
+          <div style="display:flex;gap:12px">
+            <span style="background:#fff3e0;border:2px solid #e64a19;padding:6px 14px;border-radius:4px;font-size:18px;font-weight:700">中心体</span>
+            <span style="background:#f5e6ff;border:2px solid #7b1fa2;padding:6px 14px;border-radius:4px;font-size:18px;font-weight:700">溶酶体</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- S6 FUNCTION ANALOGY — city map shows organelle functions visually -->
+<div class="slide">
+  <div style="display:flex;flex-direction:column;gap:28px;width:100%">
+    <div style="font-size:52px;font-weight:700;text-align:center">功能速记——用城市类比</div>
+    <!-- City map metaphor: each organelle = a city function with visual -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:24px;width:100%">
+      <div class="card" style="padding:24px;display:flex;gap:16px;align-items:flex-start" data-step="1">
+        <div style="font-size:52px;flex-shrink:0">🏛️</div>
+        <div>
+          <div style="font-size:28px;font-weight:700;color:var(--a4)">细胞核</div>
+          <div style="font-size:20px;color:var(--dim);margin:4px 0">= 市政厅（指挥中心）</div>
+          <div style="font-size:18px;color:var(--ink)">储存DNA；发出指令；控制遗传</div>
+        </div>
+      </div>
+      <div class="card" style="padding:24px;display:flex;gap:16px;align-items:flex-start" data-step="2">
+        <div style="font-size:52px;flex-shrink:0">⚡</div>
+        <div>
+          <div style="font-size:28px;font-weight:700;color:var(--a2)">线粒体</div>
+          <div style="font-size:20px;color:var(--dim);margin:4px 0">= 发电厂</div>
+          <div style="font-size:18px;color:var(--ink)">有氧呼吸；产生ATP（能量货币）</div>
+        </div>
+      </div>
+      <div class="card" style="padding:24px;display:flex;gap:16px;align-items:flex-start" data-step="3">
+        <div style="font-size:52px;flex-shrink:0">☀️</div>
+        <div>
+          <div style="font-size:28px;font-weight:700;color:var(--a3)">叶绿体</div>
+          <div style="font-size:20px;color:var(--dim);margin:4px 0">= 太阳能电站（植物独有）</div>
+          <div style="font-size:18px;color:var(--ink)">光合作用；光能→化学能；产O₂</div>
+        </div>
+      </div>
+      <div class="card" style="padding:24px;display:flex;gap:16px;align-items:flex-start" data-step="4">
+        <div style="font-size:52px;flex-shrink:0">🚧</div>
+        <div>
+          <div style="font-size:28px;font-weight:700;color:var(--a1)">细胞膜</div>
+          <div style="font-size:20px;color:var(--dim);margin:4px 0">= 海关/关卡</div>
+          <div style="font-size:18px;color:var(--ink)">选择性通透；信号接收；细胞识别</div>
+        </div>
+      </div>
+      <div class="card" style="padding:24px;display:flex;gap:16px;align-items:flex-start" data-step="5">
+        <div style="font-size:52px;flex-shrink:0">🏗️</div>
+        <div>
+          <div style="font-size:28px;font-weight:700;color:var(--dim)">核糖体</div>
+          <div style="font-size:20px;color:var(--dim);margin:4px 0">= 蛋白质加工厂</div>
+          <div style="font-size:18px;color:var(--ink)">合成蛋白质；mRNA翻译的场所</div>
+        </div>
+      </div>
+      <div class="card" style="padding:24px;display:flex;gap:16px;align-items:flex-start" data-step="6">
+        <div style="font-size:52px;flex-shrink:0">🏊</div>
+        <div>
+          <div style="font-size:28px;font-weight:700;color:#0288d1">液泡</div>
+          <div style="font-size:20px;color:var(--dim);margin:4px 0">= 水库+仓库（植物独有）</div>
+          <div style="font-size:18px;color:var(--ink)">储水·色素·废物；维持细胞膨压</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- S7 CELL DIVISION — visual phases -->
+<div class="slide">
+  <div style="display:flex;flex-direction:column;gap:32px;width:100%">
+    <div style="font-size:52px;font-weight:700;text-align:center">有丝分裂——图像序列</div>
+    <div style="display:flex;gap:0;align-items:stretch;width:100%;border:1px solid var(--border);border-radius:4px;overflow:hidden">
+      <!-- Each phase as a visual cell drawing + minimal label -->
+      <div style="flex:1;border-right:1px solid var(--border);padding:24px;display:flex;flex-direction:column;align-items:center;gap:12px" data-step="1">
+        <svg width="140" height="140" viewBox="0 0 140 140">
+          <ellipse cx="70" cy="70" rx="66" ry="60" fill="#fce4ec" stroke="#7b1fa2" stroke-width="3"/>
+          <ellipse cx="70" cy="70" rx="40" ry="36" fill="#fff9c4" stroke="#f9a825" stroke-width="2"/>
+          <!-- DNA replication lines inside nucleus -->
+          <line x1="56" y1="58" x2="56" y2="82" stroke="#f9a825" stroke-width="2"/>
+          <line x1="62" y1="55" x2="62" y2="85" stroke="#f9a825" stroke-width="2"/>
+          <line x1="68" y1="55" x2="68" y2="85" stroke="#f9a825" stroke-width="2"/>
+          <line x1="74" y1="55" x2="74" y2="85" stroke="#f9a825" stroke-width="2"/>
+          <line x1="80" y1="58" x2="80" y2="82" stroke="#f9a825" stroke-width="2"/>
+          <!-- Doubling arrow -->
+          <text x="70" y="125" text-anchor="middle" font-size="14" fill="#2563eb" font-family="IBM Plex Mono">DNA×2</text>
+        </svg>
+        <div style="font-size:26px;font-weight:700;color:var(--a1)">间期</div>
+        <div style="font-size:18px;color:var(--dim);text-align:center">DNA复制<br>细胞生长</div>
+      </div>
+      <div style="flex:1;border-right:1px solid var(--border);padding:24px;display:flex;flex-direction:column;align-items:center;gap:12px" data-step="2">
+        <svg width="140" height="140" viewBox="0 0 140 140">
+          <ellipse cx="70" cy="70" rx="66" ry="60" fill="#f5f3ff" stroke="#7c3aed" stroke-width="3"/>
+          <!-- Chromosomes (X shapes) condensing -->
+          <text x="70" y="56" text-anchor="middle" font-size="22" fill="#7c3aed" font-weight="900" font-family="IBM Plex Sans">X X X</text>
+          <text x="70" y="82" text-anchor="middle" font-size="22" fill="#7c3aed" font-weight="900" font-family="IBM Plex Sans">X X</text>
+          <!-- Spindle fibers appearing -->
+          <line x1="70" y1="10" x2="40" y2="68" stroke="#dc2626" stroke-width="1.5" stroke-dasharray="4,3"/>
+          <line x1="70" y1="10" x2="70" y2="68" stroke="#dc2626" stroke-width="1.5" stroke-dasharray="4,3"/>
+          <line x1="70" y1="10" x2="100" y2="68" stroke="#dc2626" stroke-width="1.5" stroke-dasharray="4,3"/>
+          <text x="70" y="125" text-anchor="middle" font-size="14" fill="#7c3aed" font-family="IBM Plex Mono">染色体凝缩</text>
+        </svg>
+        <div style="font-size:26px;font-weight:700;color:var(--a4)">前期</div>
+        <div style="font-size:18px;color:var(--dim);text-align:center">染色体出现<br>核膜消失</div>
+      </div>
+      <div style="flex:1;border-right:1px solid var(--border);padding:24px;display:flex;flex-direction:column;align-items:center;gap:12px" data-step="3">
+        <svg width="140" height="140" viewBox="0 0 140 140">
+          <ellipse cx="70" cy="70" rx="66" ry="60" fill="#f0fdf4" stroke="#16a34a" stroke-width="3"/>
+          <!-- Chromosomes at equatorial plate (center) -->
+          <text x="70" y="60" text-anchor="middle" font-size="22" fill="#7c3aed" font-weight="900" font-family="IBM Plex Sans">X X X</text>
+          <text x="70" y="84" text-anchor="middle" font-size="22" fill="#7c3aed" font-weight="900" font-family="IBM Plex Sans">X X</text>
+          <!-- Equatorial line -->
+          <line x1="20" y1="70" x2="120" y2="70" stroke="#16a34a" stroke-width="3" stroke-dasharray="5,3"/>
+          <text x="70" y="125" text-anchor="middle" font-size="14" fill="#16a34a" font-family="IBM Plex Mono">排在赤道板</text>
+        </svg>
+        <div style="font-size:26px;font-weight:700;color:var(--a3)">中期</div>
+        <div style="font-size:18px;color:var(--dim);text-align:center">赤道板排列<br>观察最佳时期</div>
+      </div>
+      <div style="flex:1;border-right:1px solid var(--border);padding:24px;display:flex;flex-direction:column;align-items:center;gap:12px" data-step="4">
+        <svg width="140" height="140" viewBox="0 0 140 140">
+          <ellipse cx="70" cy="70" rx="66" ry="60" fill="#fff1f2" stroke="#dc2626" stroke-width="3"/>
+          <!-- Chromosomes pulling to poles -->
+          <text x="50" y="38" text-anchor="middle" font-size="14" fill="#7c3aed" font-weight="900" font-family="IBM Plex Sans">XX</text>
+          <text x="90" y="38" text-anchor="middle" font-size="14" fill="#7c3aed" font-weight="900" font-family="IBM Plex Sans">XX</text>
+          <text x="50" y="108" text-anchor="middle" font-size="14" fill="#7c3aed" font-weight="900" font-family="IBM Plex Sans">XX</text>
+          <text x="90" y="108" text-anchor="middle" font-size="14" fill="#7c3aed" font-weight="900" font-family="IBM Plex Sans">XX</text>
+          <!-- Pulling lines -->
+          <line x1="50" y1="42" x2="50" y2="68" stroke="#dc2626" stroke-width="2"/>
+          <line x1="90" y1="42" x2="90" y2="68" stroke="#dc2626" stroke-width="2"/>
+          <line x1="50" y1="100" x2="50" y2="74" stroke="#dc2626" stroke-width="2"/>
+          <line x1="90" y1="100" x2="90" y2="74" stroke="#dc2626" stroke-width="2"/>
+          <text x="70" y="125" text-anchor="middle" font-size="14" fill="#dc2626" font-family="IBM Plex Mono">向两极移动</text>
+        </svg>
+        <div style="font-size:26px;font-weight:700;color:var(--a2)">后期</div>
+        <div style="font-size:18px;color:var(--dim);text-align:center">着丝点分裂<br>染色体移极</div>
+      </div>
+      <div style="flex:1;padding:24px;display:flex;flex-direction:column;align-items:center;gap:12px" data-step="5">
+        <svg width="140" height="140" viewBox="0 0 140 140">
+          <!-- Two daughter cells forming -->
+          <ellipse cx="50" cy="70" rx="42" ry="48" fill="#fce4ec" stroke="#7b1fa2" stroke-width="2.5"/>
+          <ellipse cx="50" cy="70" rx="20" ry="22" fill="#fff9c4" stroke="#f9a825" stroke-width="2"/>
+          <ellipse cx="112" cy="70" rx="22" ry="26" fill="#fce4ec" stroke="#7b1fa2" stroke-width="2.5"/>
+          <ellipse cx="112" cy="70" rx="10" ry="12" fill="#fff9c4" stroke="#f9a825" stroke-width="1.5"/>
+          <text x="70" y="125" text-anchor="middle" font-size="14" fill="#555" font-family="IBM Plex Mono">2个子细胞</text>
+        </svg>
+        <div style="font-size:26px;font-weight:700;color:var(--dim)">末期</div>
+        <div style="font-size:18px;color:var(--dim);text-align:center">核膜重现<br>细胞质分裂</div>
+      </div>
+    </div>
+    <div class="card" style="padding:22px 32px;text-align:center" data-step="6">
+      <div style="font-size:24px">关键：有丝分裂保证子细胞与亲代 <strong style="color:var(--a1)">染色体数目相同</strong>（2N → 分裂 → 2N + 2N）</div>
+    </div>
+  </div>
+</div>
+
+<!-- S8 SUMMARY -->
+<div class="slide">
+  <div style="display:flex;flex-direction:column;gap:28px;width:100%">
+    <div style="font-size:52px;font-weight:700;text-align:center">知识框架——图形记忆</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:28px;width:100%">
+      <div class="card" style="padding:28px" data-step="1">
+        <div style="font-size:32px;font-weight:700;color:var(--a1);margin-bottom:12px">📌 核心等式</div>
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:26px;color:var(--a1);
+          background:#eff6ff;border:1px solid #bfdbfe;padding:16px;border-radius:4px">
+          结构 → 功能 → 生命活动
+        </div>
+        <div style="font-size:20px;color:var(--dim);margin-top:12px">看懂了图，就理解了功能</div>
+      </div>
+      <div class="card" style="padding:28px" data-step="2">
+        <div style="font-size:32px;font-weight:700;color:var(--a3);margin-bottom:12px">🌿 植物细胞独有</div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap">
+          <span style="background:#efebe9;border:2px solid #5d4037;padding:8px 16px;border-radius:4px;font-size:20px;font-weight:700">细胞壁</span>
+          <span style="background:#e3f2fd;border:2px solid #42a5f5;padding:8px 16px;border-radius:4px;font-size:20px;font-weight:700">大液泡</span>
+          <span style="background:#f1f8e9;border:2px solid #388e3c;padding:8px 16px;border-radius:4px;font-size:20px;font-weight:700">叶绿体</span>
+        </div>
+      </div>
+      <div class="card" style="padding:28px" data-step="3">
+        <div style="font-size:32px;font-weight:700;color:var(--a4);margin-bottom:12px">🐾 动物细胞独有</div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap">
+          <span style="background:#fff3e0;border:2px solid #e64a19;padding:8px 16px;border-radius:4px;font-size:20px;font-weight:700">中心体</span>
+          <span style="background:#f5e6ff;border:2px solid #7b1fa2;padding:8px 16px;border-radius:4px;font-size:20px;font-weight:700">溶酶体</span>
+        </div>
+      </div>
+      <div class="card" style="padding:28px" data-step="4">
+        <div style="font-size:32px;font-weight:700;color:var(--dim);margin-bottom:12px">⚡ 两者共有</div>
+        <div style="font-size:20px;color:var(--ink);line-height:1.7">
+          细胞膜 · 细胞核 · 线粒体<br>
+          核糖体 · 内质网 · 高尔基体
+        </div>
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:18px;color:var(--a1);margin-top:12px">
+          共同 = 都需要呼吸 + 遗传
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+<div id="prog-wrap"><div id="prog"></div></div>
+<div id="ctr"></div>
+
+<script>
+function scaleCanvas(){
+  const d=document.getElementById('deck');
+  const W=+d.dataset.w||1920,H=+d.dataset.h||1080;
+  const s=Math.min(innerWidth/W,innerHeight/H);
+  d.style.cssText=`width:${W}px;height:${H}px;transform:scale(${s});transform-origin:top left;margin-left:${(innerWidth-W*s)/2}px;margin-top:${(innerHeight-H*s)/2}px`;
+}
+window.addEventListener('resize',scaleCanvas);scaleCanvas();
+const slides=[...document.querySelectorAll('.slide')];
+let cur=0,stepIdx=0;
+const stepsOf=sl=>[...sl.querySelectorAll('[data-step]')].sort((a,b)=>+a.dataset.step-+b.dataset.step);
+const updateUI=()=>{
+  document.getElementById('prog').style.width=((cur+1)/slides.length*100)+'%';
+  document.getElementById('ctr').textContent=(cur+1)+' / '+slides.length;
+};
+
+/* Plant cell label reveal order */
+const plantLabels=['lbl-cw','lbl-cm','lbl-vac','lbl-nuc','lbl-chl','lbl-mit'];
+let plantIdx=0;
+/* Animal cell label reveal order */
+const animalLabels=['albl-cm','albl-nuc','albl-mit','albl-lys','albl-cen','albl-no'];
+let animalIdx=0;
+
+function onEnter(i){plantIdx=0;animalIdx=0;}
+
+function gotoSlide(n){
+  if(n===cur)return;
+  const old=slides[cur];
+  cur=Math.max(0,Math.min(n,slides.length-1));
+  stepIdx=0;
+  const nsl=slides[cur];
+  old.classList.add('leaving');old.classList.remove('active');
+  nsl.style.display='flex';nsl.style.opacity='0';
+  nsl.getBoundingClientRect();
+  nsl.style.transition='opacity .48s ease';nsl.style.opacity='1';
+  nsl.classList.add('active');
+  stepsOf(nsl).forEach(e=>e.classList.remove('on'));
+  updateUI();onEnter(cur);
+  setTimeout(()=>{old.classList.remove('leaving');old.style.display='';nsl.style.transition='';nsl.style.opacity=''},520);
+}
+function advance(){
+  /* Plant cell: reveal labels one at a time on click */
+  if(cur===2){ // plant cell slide
+    if(plantIdx<plantLabels.length){
+      document.getElementById(plantLabels[plantIdx]).style.opacity='1';
+      plantIdx++;return;
+    }
+    gotoSlide(cur+1);return;
+  }
+  /* Animal cell: reveal labels one at a time */
+  if(cur===3){
+    if(animalIdx<animalLabels.length){
+      document.getElementById(animalLabels[animalIdx]).style.opacity='1';
+      animalIdx++;return;
+    }
+    gotoSlide(cur+1);return;
+  }
+  const steps=stepsOf(slides[cur]);
+  if(stepIdx<steps.length){
+    const sv=steps[stepIdx].dataset.step;
+    steps.filter(e=>e.dataset.step===sv).forEach(e=>e.classList.add('on'));
+    while(stepIdx<steps.length&&steps[stepIdx].dataset.step===sv)stepIdx++;
+  }else if(cur<slides.length-1){gotoSlide(cur+1)}
+}
+function retreat(){if(cur>0)gotoSlide(cur-1)}
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight'||e.key===' '){e.preventDefault();advance()}
+  if(e.key==='ArrowLeft'){e.preventDefault();retreat()}
+  if(e.key==='f')document.documentElement.requestFullscreen?.()
+});
+document.addEventListener('click',e=>{if(!e.target.closest('[data-interactive],button,a,input'))advance()});
+let tx=0;
+document.addEventListener('touchstart',e=>{tx=e.touches[0].clientX});
+document.addEventListener('touchend',e=>{const dx=e.changedTouches[0].clientX-tx;if(Math.abs(dx)>50){dx<0?advance():retreat()}});
+updateUI();
+</script>
+</body>
+</html>

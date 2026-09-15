@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>工业革命 v2 · 视觉场景对比</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;900&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#ffffff;--ink:#111827;--a1:#1d4ed8;--a2:#7c3aed;--a3:#059669;--a4:#d97706;--a5:#dc2626;--dim:#6b7280;--border:#e5e7eb}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100%;background:#111;overflow:hidden;font-family:'Noto Sans SC',sans-serif}
+#deck{position:absolute;background:var(--bg);overflow:hidden}
+.slide{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  padding:52px 80px;opacity:0;transition:opacity .48s ease;z-index:1}
+.slide.active{opacity:1;z-index:2}
+.slide.leaving{display:flex!important;opacity:0;pointer-events:none;z-index:1}
+[data-step]{opacity:0;transform:translateY(14px);transition:opacity .4s ease,transform .4s ease}
+[data-step].on{opacity:1;transform:translateY(0)}
+#prog-wrap{position:absolute;bottom:0;left:0;right:0;height:4px;background:var(--border);z-index:100}
+#prog{height:100%;background:var(--a1);transition:width .3s ease}
+#ctr{position:absolute;top:18px;right:28px;font-size:16px;color:var(--dim);z-index:100}
+.card{background:#f9fafb;border:1px solid var(--border);border-radius:8px;padding:28px 32px}
+</style>
+</head>
+<body>
+<div id="deck" data-w="1920" data-h="1080">
+
+<!-- S1 COVER -->
+<div class="slide active">
+  <div style="position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,var(--a1),var(--a2))"></div>
+  <div style="display:flex;gap:80px;align-items:center;width:100%;position:relative;z-index:1">
+    <div style="flex:1">
+      <div style="font-size:20px;color:var(--dim);letter-spacing:3px;margin-bottom:20px">高中历史 · 世界近代史</div>
+      <div style="font-size:96px;font-weight:900;line-height:1;color:var(--ink)">工业革命</div>
+      <div style="font-size:40px;color:var(--dim);margin-top:16px">1760—1850：从手工到机器的90年</div>
+      <div style="margin-top:32px;font-size:22px;color:var(--a1);font-weight:700">核心问题：技术变化如何改变经济、社会和全球格局？</div>
+    </div>
+    <!-- Before/After scene thumbnail as cover visual -->
+    <div style="flex:0 0 600px">
+      <svg width="600" height="380" viewBox="0 0 600 380">
+        <!-- Before: cottage workshop -->
+        <rect x="20" y="140" width="240" height="160" rx="4" fill="#fef9c3" stroke="#111827" stroke-width="2"/>
+        <!-- Cottage roof -->
+        <polygon points="140,80 20,140 260,140" fill="#d97706" stroke="#111827" stroke-width="2"/>
+        <!-- Chimney (small smoke) -->
+        <rect x="180" y="90" width="16" height="40" fill="#9ca3af" stroke="#111827" stroke-width="1"/>
+        <!-- Window -->
+        <rect x="55" y="168" width="50" height="50" rx="2" fill="#bfdbfe" stroke="#111827" stroke-width="2"/>
+        <!-- Door -->
+        <rect x="140" y="220" width="40" height="80" rx="2" fill="#92400e" stroke="#111827" stroke-width="2"/>
+        <!-- Single worker at loom -->
+        <circle cx="90" cy="200" r="12" fill="#fde68a" stroke="#111827" stroke-width="2"/>
+        <line x1="90" y1="212" x2="90" y2="250" stroke="#111827" stroke-width="3"/>
+        <line x1="90" y1="228" x2="70" y2="244" stroke="#111827" stroke-width="3"/>
+        <line x1="90" y1="228" x2="110" y2="244" stroke="#111827" stroke-width="3"/>
+        <text x="140" y="360" text-anchor="middle" font-size="20" fill="#d97706" font-weight="900" font-family="Noto Sans SC">1760 手工作坊</text>
+        <!-- VS arrow -->
+        <line x1="270" y1="220" x2="330" y2="220" stroke="#111827" stroke-width="4"/>
+        <polygon points="334,214 320,220 334,226" fill="#111827"/>
+        <text x="300" y="250" text-anchor="middle" font-size="18" fill="#6b7280" font-family="Noto Sans SC">90年</text>
+        <!-- After: factory -->
+        <rect x="340" y="100" width="240" height="220" rx="4" fill="#f1f5f9" stroke="#111827" stroke-width="2"/>
+        <!-- Factory roof (flat) -->
+        <rect x="340" y="90" width="240" height="14" rx="2" fill="#1d4ed8"/>
+        <!-- Multiple chimneys with smoke -->
+        <rect x="380" y="50" width="14" height="44" fill="#9ca3af" stroke="#111827" stroke-width="1"/>
+        <rect x="420" y="40" width="14" height="54" fill="#9ca3af" stroke="#111827" stroke-width="1"/>
+        <rect x="460" y="50" width="14" height="44" fill="#9ca3af" stroke="#111827" stroke-width="1"/>
+        <!-- Smoke clouds -->
+        <ellipse cx="387" cy="44" rx="14" ry="10" fill="#9ca3af" opacity=".5"/>
+        <ellipse cx="427" cy="32" rx="16" ry="12" fill="#9ca3af" opacity=".5"/>
+        <ellipse cx="467" cy="42" rx="14" ry="10" fill="#9ca3af" opacity=".5"/>
+        <!-- Windows (multiple) -->
+        <rect x="358" y="116" width="34" height="34" rx="2" fill="#bfdbfe" stroke="#111827" stroke-width="1"/>
+        <rect x="406" y="116" width="34" height="34" rx="2" fill="#bfdbfe" stroke="#111827" stroke-width="1"/>
+        <rect x="454" y="116" width="34" height="34" rx="2" fill="#bfdbfe" stroke="#111827" stroke-width="1"/>
+        <rect x="502" y="116" width="34" height="34" rx="2" fill="#bfdbfe" stroke="#111827" stroke-width="1"/>
+        <!-- Multiple workers (small figures) -->
+        <circle cx="370" cy="210" r="8" fill="#fde68a" stroke="#111827" stroke-width="1.5"/>
+        <line x1="370" y1="218" x2="370" y2="240" stroke="#111827" stroke-width="2"/>
+        <circle cx="400" cy="214" r="8" fill="#fde68a" stroke="#111827" stroke-width="1.5"/>
+        <line x1="400" y1="222" x2="400" y2="244" stroke="#111827" stroke-width="2"/>
+        <circle cx="430" cy="210" r="8" fill="#fde68a" stroke="#111827" stroke-width="1.5"/>
+        <line x1="430" y1="218" x2="430" y2="240" stroke="#111827" stroke-width="2"/>
+        <circle cx="460" cy="214" r="8" fill="#fde68a" stroke="#111827" stroke-width="1.5"/>
+        <line x1="460" y1="222" x2="460" y2="244" stroke="#111827" stroke-width="2"/>
+        <circle cx="490" cy="210" r="8" fill="#fde68a" stroke="#111827" stroke-width="1.5"/>
+        <line x1="490" y1="218" x2="490" y2="240" stroke="#111827" stroke-width="2"/>
+        <!-- Steam engine (simple) -->
+        <rect x="358" y="162" width="80" height="36" rx="4" fill="#6b7280" stroke="#111827" stroke-width="2"/>
+        <circle cx="360" cy="180" r="8" fill="#374151"/>
+        <text x="395" y="185" text-anchor="middle" font-size="12" fill="#fff" font-weight="900" font-family="Noto Sans SC">蒸汽机</text>
+        <text x="460" y="360" text-anchor="middle" font-size="20" fill="#1d4ed8" font-weight="900" font-family="Noto Sans SC">1850 工厂</text>
+      </svg>
+    </div>
+  </div>
+</div>
+
+<!-- S2 TIMELINE — visual milestones with icons -->
+<div class="slide">
+  <div style="display:flex;flex-direction:column;gap:36px;width:100%">
+    <div style="font-size:52px;font-weight:900">1760—1850：90年的视觉时间轴</div>
+    <svg width="1600" height="300" viewBox="0 0 1600 300" style="width:100%;max-width:1600px">
+      <!-- Timeline bar (fills as steps reveal) -->
+      <rect x="60" y="148" width="1480" height="8" rx="4" fill="#e5e7eb"/>
+      <rect id="tlFill" x="60" y="148" width="0" height="8" rx="4" fill="var(--a1)" style="transition:width 1.2s ease"/>
+      <!-- Events -->
+      <!-- 1760 -->
+      <g id="ev0">
+        <circle cx="60" cy="152" r="14" fill="var(--a1)" stroke="#fff" stroke-width="3"/>
+        <line x1="60" y1="138" x2="60" y2="90" stroke="var(--a1)" stroke-width="2"/>
+        <text x="60" y="82" text-anchor="middle" font-size="22" font-weight="900" fill="var(--a1)" font-family="Noto Sans SC">1760</text>
+        <text x="60" y="58" text-anchor="middle" font-size="18" fill="#111" font-family="Noto Sans SC">工业革命起源</text>
+        <text x="60" y="36" text-anchor="middle" font-size="16" fill="#555" font-family="Noto Sans SC">英国</text>
+      </g>
+      <!-- 1769 Watt steam engine -->
+      <g id="ev1" opacity="0" style="transition:opacity .4s ease">
+        <circle cx="370" cy="152" r="14" fill="var(--a4)" stroke="#fff" stroke-width="3"/>
+        <line x1="370" y1="166" x2="370" y2="214" stroke="var(--a4)" stroke-width="2"/>
+        <text x="370" y="238" text-anchor="middle" font-size="22" font-weight="900" fill="var(--a4)" font-family="Noto Sans SC">1769</text>
+        <!-- Mini steam engine icon -->
+        <rect x="340" y="250" width="60" height="26" rx="4" fill="#fde68a" stroke="#111" stroke-width="1.5"/>
+        <text x="370" y="268" text-anchor="middle" font-size="13" fill="#111" font-weight="900" font-family="Noto Sans SC">瓦特蒸汽机</text>
+      </g>
+      <!-- 1785 -->
+      <g id="ev2" opacity="0" style="transition:opacity .4s ease">
+        <circle cx="680" cy="152" r="14" fill="var(--a3)" stroke="#fff" stroke-width="3"/>
+        <line x1="680" y1="138" x2="680" y2="90" stroke="var(--a3)" stroke-width="2"/>
+        <text x="680" y="82" text-anchor="middle" font-size="22" font-weight="900" fill="var(--a3)" font-family="Noto Sans SC">1785</text>
+        <text x="680" y="58" text-anchor="middle" font-size="18" fill="#111" font-family="Noto Sans SC">蒸汽机入纺织</text>
+        <text x="680" y="36" text-anchor="middle" font-size="16" fill="#555" font-family="Noto Sans SC">第一个机械化行业</text>
+      </g>
+      <!-- 1814 steam locomotive -->
+      <g id="ev3" opacity="0" style="transition:opacity .4s ease">
+        <circle cx="990" cy="152" r="14" fill="var(--a2)" stroke="#fff" stroke-width="3"/>
+        <line x1="990" y1="166" x2="990" y2="214" stroke="var(--a2)" stroke-width="2"/>
+        <text x="990" y="238" text-anchor="middle" font-size="22" font-weight="900" fill="var(--a2)" font-family="Noto Sans SC">1814</text>
+        <text x="990" y="258" text-anchor="middle" font-size="18" fill="#111" font-family="Noto Sans SC">蒸汽火车</text>
+        <text x="990" y="278" text-anchor="middle" font-size="16" fill="#555" font-family="Noto Sans SC">试运行</text>
+      </g>
+      <!-- 1850 World Factory -->
+      <g id="ev4" opacity="0" style="transition:opacity .4s ease">
+        <circle cx="1540" cy="152" r="18" fill="var(--ink)" stroke="#fff" stroke-width="3"/>
+        <line x1="1540" y1="138" x2="1540" y2="90" stroke="var(--ink)" stroke-width="2"/>
+        <text x="1540" y="82" text-anchor="middle" font-size="22" font-weight="900" fill="var(--ink)" font-family="Noto Sans SC">1850</text>
+        <text x="1540" y="58" text-anchor="middle" font-size="18" fill="#111" font-family="Noto Sans SC">英国=世界工厂</text>
+        <text x="1540" y="36" text-anchor="middle" font-size="16" fill="#555" font-family="Noto Sans SC">主导全球贸易</text>
+      </g>
+    </svg>
+    <div class="card" style="text-align:center" data-step="5">
+      <div style="font-size:26px">从手工作坊到蒸汽驱动工厂 → 人类第一次摆脱了体力与自然能源的限制</div>
+    </div>
+  </div>
+</div>
+
+<!-- S3 BEFORE/AFTER VISUAL SCENE: Cottage → Factory -->
+<!-- This IS the lesson — visual scene comparison, not text lists -->
+<div class="slide" id="s3">
+  <div style="display:flex;flex-direction:column;gap:28px;width:100%">
+    <div style="font-size:52px;font-weight:900;text-align:center">工厂制度的诞生——两个场景的对比</div>
+    <div style="display:flex;gap:0;width:100%;border:2px solid var(--ink);border-radius:8px;overflow:hidden">
+      <!-- BEFORE: cottage workshop scene -->
+      <div style="flex:1;background:#fef9c3;padding:36px 32px;border-right:2px solid var(--ink)" data-step="1">
+        <div style="font-size:32px;font-weight:900;color:var(--a4);margin-bottom:20px">1760 年前 · 手工作坊</div>
+        <svg width="100%" height="320" viewBox="0 0 500 320">
+          <!-- Cottage -->
+          <rect x="80" y="120" width="340" height="180" rx="4" fill="#fef3c7" stroke="#92400e" stroke-width="3"/>
+          <polygon points="250,50 80,120 420,120" fill="#d97706" stroke="#92400e" stroke-width="3"/>
+          <!-- Windows -->
+          <rect x="110" y="148" width="60" height="60" rx="2" fill="#bfdbfe" stroke="#92400e" stroke-width="2"/>
+          <line x1="140" y1="148" x2="140" y2="208" stroke="#92400e" stroke-width="1.5"/>
+          <line x1="110" y1="178" x2="170" y2="178" stroke="#92400e" stroke-width="1.5"/>
+          <!-- Door -->
+          <rect x="210" y="240" width="80" height="60" rx="2" fill="#92400e" stroke="#92400e" stroke-width="2"/>
+          <!-- One worker + hand loom -->
+          <circle cx="350" cy="176" r="18" fill="#fde68a" stroke="#92400e" stroke-width="2"/>
+          <line x1="350" y1="194" x2="350" y2="244" stroke="#92400e" stroke-width="3"/>
+          <line x1="350" y1="215" x2="320" y2="240" stroke="#92400e" stroke-width="3"/>
+          <line x1="350" y1="215" x2="380" y2="240" stroke="#92400e" stroke-width="3"/>
+          <!-- Loom (simple frame) -->
+          <rect x="310" y="245" width="80" height="50" rx="2" fill="none" stroke="#92400e" stroke-width="2"/>
+          <line x1="320" y1="255" x2="320" y2="290" stroke="#92400e" stroke-width="1.5"/>
+          <line x1="340" y1="255" x2="340" y2="290" stroke="#92400e" stroke-width="1.5"/>
+          <line x1="360" y1="255" x2="360" y2="290" stroke="#92400e" stroke-width="1.5"/>
+          <line x1="380" y1="255" x2="380" y2="290" stroke="#92400e" stroke-width="1.5"/>
+          <!-- Labels (arrows pointing to features) -->
+          <line x1="170" y1="178" x2="58" y2="220" stroke="var(--a4)" stroke-width="1.5"/>
+          <text x="10" y="232" font-size="16" fill="var(--a4)" font-weight="900" font-family="Noto Sans SC">工具：自有</text>
+          <line x1="310" y1="270" x2="200" y2="310" stroke="var(--a4)" stroke-width="1.5"/>
+          <text x="100" y="316" font-size="16" fill="var(--a4)" font-weight="900" font-family="Noto Sans SC">1人·手工</text>
+        </svg>
+      </div>
+      <!-- AFTER: factory scene -->
+      <div style="flex:1;background:#eff6ff;padding:36px 32px" data-step="2">
+        <div style="font-size:32px;font-weight:900;color:var(--a1);margin-bottom:20px">1850 年后 · 蒸汽工厂</div>
+        <svg width="100%" height="320" viewBox="0 0 500 320">
+          <!-- Factory building -->
+          <rect x="40" y="80" width="420" height="220" rx="4" fill="#dbeafe" stroke="#1d4ed8" stroke-width="3"/>
+          <rect x="40" y="68" width="420" height="16" rx="2" fill="#1d4ed8"/>
+          <!-- Multiple chimneys -->
+          <rect x="100" y="20" width="16" height="52" fill="#9ca3af" stroke="#111" stroke-width="1.5"/>
+          <rect x="160" y="10" width="16" height="62" fill="#9ca3af" stroke="#111" stroke-width="1.5"/>
+          <rect x="220" y="20" width="16" height="52" fill="#9ca3af" stroke="#111" stroke-width="1.5"/>
+          <!-- Smoke -->
+          <ellipse cx="108" cy="14" rx="16" ry="10" fill="#9ca3af" opacity=".5"/>
+          <ellipse cx="168" cy="4" rx="18" ry="12" fill="#9ca3af" opacity=".5"/>
+          <ellipse cx="228" cy="14" rx="16" ry="10" fill="#9ca3af" opacity=".5"/>
+          <!-- Windows x4 -->
+          <rect x="60" y="100" width="44" height="44" rx="2" fill="#bfdbfe" stroke="#1d4ed8" stroke-width="2"/>
+          <rect x="120" y="100" width="44" height="44" rx="2" fill="#bfdbfe" stroke="#1d4ed8" stroke-width="2"/>
+          <rect x="180" y="100" width="44" height="44" rx="2" fill="#bfdbfe" stroke="#1d4ed8" stroke-width="2"/>
+          <rect x="240" y="100" width="44" height="44" rx="2" fill="#bfdbfe" stroke="#1d4ed8" stroke-width="2"/>
+          <rect x="300" y="100" width="44" height="44" rx="2" fill="#bfdbfe" stroke="#1d4ed8" stroke-width="2"/>
+          <!-- Steam engine in center -->
+          <rect x="180" y="158" width="100" height="50" rx="4" fill="#374151" stroke="#111" stroke-width="2"/>
+          <circle cx="188" cy="183" r="10" fill="#6b7280"/>
+          <text x="240" y="188" text-anchor="middle" font-size="14" fill="#fff" font-weight="900" font-family="Noto Sans SC">蒸汽机</text>
+          <!-- 5 workers -->
+          <circle cx="80" cy="228" r="10" fill="#fde68a" stroke="#111" stroke-width="1.5"/>
+          <line x1="80" y1="238" x2="80" y2="260" stroke="#111" stroke-width="2.5"/>
+          <circle cx="120" cy="232" r="10" fill="#fde68a" stroke="#111" stroke-width="1.5"/>
+          <line x1="120" y1="242" x2="120" y2="264" stroke="#111" stroke-width="2.5"/>
+          <circle cx="160" cy="228" r="10" fill="#fde68a" stroke="#111" stroke-width="1.5"/>
+          <line x1="160" y1="238" x2="160" y2="260" stroke="#111" stroke-width="2.5"/>
+          <circle cx="320" cy="228" r="10" fill="#fde68a" stroke="#111" stroke-width="1.5"/>
+          <line x1="320" y1="238" x2="320" y2="260" stroke="#111" stroke-width="2.5"/>
+          <circle cx="360" cy="232" r="10" fill="#fde68a" stroke="#111" stroke-width="1.5"/>
+          <line x1="360" y1="242" x2="360" y2="264" stroke="#111" stroke-width="2.5"/>
+          <!-- Labels -->
+          <line x1="300" y1="183" x2="430" y2="160" stroke="var(--a1)" stroke-width="1.5"/>
+          <text x="430" y="156" font-size="16" fill="var(--a1)" font-weight="900" font-family="Noto Sans SC">机器：资本家所有</text>
+          <text x="350" y="298" font-size="16" fill="var(--a1)" font-weight="900" font-family="Noto Sans SC">多人·纪律·计时薪酬</text>
+        </svg>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- S4 URBANIZATION — visual population shift (figures accumulating) -->
+<div class="slide" id="s4">
+  <div style="display:flex;flex-direction:column;gap:32px;width:100%">
+    <div style="font-size:52px;font-weight:900;text-align:center">城市化——人口用脚投票</div>
+    <div style="display:flex;gap:60px;align-items:center;width:100%">
+      <!-- Visual: people moving from farm to city -->
+      <div style="flex:1">
+        <svg id="urbanSvg" width="100%" height="400" viewBox="0 0 700 400">
+          <!-- Farm side (left) -->
+          <rect x="20" y="280" width="200" height="100" rx="4" fill="#fef9c3" stroke="#92400e" stroke-width="2"/>
+          <polygon points="120,220 20,280 220,280" fill="#d97706" stroke="#92400e" stroke-width="2"/>
+          <text x="120" y="355" text-anchor="middle" font-size="20" fill="#92400e" font-weight="900" font-family="Noto Sans SC">农村</text>
+          <!-- Arrow flow -->
+          <line x1="225" y1="320" x2="460" y2="320" stroke="#1d4ed8" stroke-width="4"/>
+          <polygon points="464,314 450,320 464,326" fill="#1d4ed8"/>
+          <text x="342" y="312" text-anchor="middle" font-size="18" fill="#1d4ed8" font-family="Noto Sans SC">进城务工</text>
+          <!-- City (right) -->
+          <rect x="470" y="180" width="80" height="200" rx="2" fill="#dbeafe" stroke="#1d4ed8" stroke-width="2"/>
+          <rect x="570" y="220" width="80" height="160" rx="2" fill="#dbeafe" stroke="#1d4ed8" stroke-width="2"/>
+          <!-- Factory chimneys (city) -->
+          <rect x="500" y="140" width="10" height="44" fill="#9ca3af"/>
+          <rect x="590" y="160" width="10" height="44" fill="#9ca3af"/>
+          <ellipse cx="505" cy="134" rx="12" ry="8" fill="#9ca3af" opacity=".5"/>
+          <ellipse cx="595" cy="154" rx="12" ry="8" fill="#9ca3af" opacity=".5"/>
+          <text x="560" y="390" text-anchor="middle" font-size="20" fill="#1d4ed8" font-weight="900" font-family="Noto Sans SC">工业城市</text>
+          <!-- People figures (10 small figures, appear step by step) -->
+          <!-- Initially: 2 in city (17%) -->
+          <g id="cityPpl">
+            <circle cx="490" cy="300" r="6" fill="#fde68a" stroke="#111" stroke-width="1.5"/>
+            <circle cx="510" cy="295" r="6" fill="#fde68a" stroke="#111" stroke-width="1.5"/>
+          </g>
+          <!-- People flowing in (appear on step 1) -->
+          <g id="morePpl" opacity="0" style="transition:opacity .6s ease">
+            <circle cx="530" cy="305" r="6" fill="#fde68a" stroke="#111" stroke-width="1.5"/>
+            <circle cx="550" cy="298" r="6" fill="#fde68a" stroke="#111" stroke-width="1.5"/>
+            <circle cx="570" cy="308" r="6" fill="#fde68a" stroke="#111" stroke-width="1.5"/>
+            <circle cx="590" cy="295" r="6" fill="#fde68a" stroke="#111" stroke-width="1.5"/>
+            <circle cx="610" cy="302" r="6" fill="#fde68a" stroke="#111" stroke-width="1.5"/>
+          </g>
+        </svg>
+      </div>
+      <!-- Stats -->
+      <div style="flex:0 0 400px;display:flex;flex-direction:column;gap:24px">
+        <div class="card" style="text-align:center" data-step="1">
+          <div style="font-size:32px;font-weight:700;color:var(--dim)">1750年</div>
+          <div style="font-size:96px;font-weight:900;color:var(--a4);line-height:1">17%</div>
+          <div style="font-size:24px;color:var(--dim)">城市人口比例</div>
+        </div>
+        <div style="font-size:60px;text-align:center;color:var(--a1)">↓</div>
+        <div class="card" style="text-align:center" data-step="2">
+          <div style="font-size:32px;font-weight:700;color:var(--dim)">1850年</div>
+          <div style="font-size:96px;font-weight:900;color:var(--a1);line-height:1">50%</div>
+          <div style="font-size:24px;color:var(--dim)">城市人口比例</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- S5 CAUSE-EFFECT CHAIN — visual flow diagram -->
+<div class="slide">
+  <div style="display:flex;flex-direction:column;gap:32px;width:100%">
+    <div style="font-size:52px;font-weight:900;text-align:center">连锁反应——视觉因果链</div>
+    <!-- Horizontal causal flow with visual icons -->
+    <svg width="1600" height="340" viewBox="0 0 1600 340" style="width:100%;max-width:1600px">
+      <!-- Node 1: Steam engine (gear icon) -->
+      <g id="cn1" data-step="1">
+        <rect x="20" y="100" width="220" height="140" rx="8" fill="#dbeafe" stroke="#1d4ed8" stroke-width="3"/>
+        <!-- Gear icon (simplified) -->
+        <circle cx="130" cy="148" r="30" fill="#1d4ed8" opacity=".7"/>
+        <circle cx="130" cy="148" r="18" fill="#dbeafe"/>
+        <text x="130" y="193" text-anchor="middle" font-size="18" fill="#1d4ed8" font-weight="900" font-family="Noto Sans SC">蒸汽机</text>
+        <text x="130" y="214" text-anchor="middle" font-size="15" fill="#555" font-family="Noto Sans SC">1769</text>
+      </g>
+      <!-- Arrow 1 -->
+      <g data-step="2">
+        <line x1="242" y1="170" x2="298" y2="170" stroke="#1d4ed8" stroke-width="4"/>
+        <polygon points="302,164 288,170 302,176" fill="#1d4ed8"/>
+      </g>
+      <!-- Node 2: Factory (building) -->
+      <g data-step="2">
+        <rect x="300" y="100" width="220" height="140" rx="8" fill="#fef3c7" stroke="#d97706" stroke-width="3"/>
+        <rect x="360" y="130" width="100" height="80" rx="2" fill="#fde68a" stroke="#d97706" stroke-width="2"/>
+        <rect x="375" y="120" width="12" height="14" fill="#9ca3af"/>
+        <rect x="400" y="115" width="12" height="19" fill="#9ca3af"/>
+        <text x="410" y="220" text-anchor="middle" font-size="18" fill="#d97706" font-weight="900" font-family="Noto Sans SC">工厂制度</text>
+        <text x="410" y="240" text-anchor="middle" font-size="15" fill="#555" font-family="Noto Sans SC">资本集中</text>
+      </g>
+      <!-- Arrow 2 -->
+      <g data-step="3">
+        <line x1="522" y1="170" x2="578" y2="170" stroke="#7c3aed" stroke-width="4"/>
+        <polygon points="582,164 568,170 582,176" fill="#7c3aed"/>
+      </g>
+      <!-- Node 3: Two classes (two people, different heights/clothes) -->
+      <g data-step="3">
+        <rect x="580" y="100" width="220" height="140" rx="8" fill="#f5f3ff" stroke="#7c3aed" stroke-width="3"/>
+        <!-- Rich (tall hat) -->
+        <circle cx="640" cy="148" r="14" fill="#fde68a" stroke="#111" stroke-width="2"/>
+        <rect x="634" y="118" width="12" height="16" rx="2" fill="#111"/>
+        <line x1="640" y1="162" x2="640" y2="200" stroke="#111" stroke-width="3"/>
+        <!-- Poor (worker hat) -->
+        <circle cx="700" cy="156" r="12" fill="#fde68a" stroke="#111" stroke-width="2"/>
+        <ellipse cx="700" cy="142" rx="14" ry="6" fill="#9ca3af"/>
+        <line x1="700" y1="168" x2="700" y2="204" stroke="#111" stroke-width="3"/>
+        <text x="690" y="225" text-anchor="middle" font-size="18" fill="#7c3aed" font-weight="900" font-family="Noto Sans SC">两大阶级</text>
+        <text x="690" y="244" text-anchor="middle" font-size="15" fill="#555" font-family="Noto Sans SC">资产 vs 无产</text>
+      </g>
+      <!-- Arrow 3 -->
+      <g data-step="4">
+        <line x1="802" y1="170" x2="858" y2="170" stroke="#059669" stroke-width="4"/>
+        <polygon points="862,164 848,170 862,176" fill="#059669"/>
+      </g>
+      <!-- Node 4: City growth (skyline) -->
+      <g data-step="4">
+        <rect x="860" y="100" width="220" height="140" rx="8" fill="#f0fdf4" stroke="#059669" stroke-width="3"/>
+        <!-- Skyline: multiple building heights -->
+        <rect x="880" y="165" width="28" height="60" rx="2" fill="#059669" opacity=".7"/>
+        <rect x="916" y="148" width="28" height="77" rx="2" fill="#059669" opacity=".7"/>
+        <rect x="952" y="138" width="28" height="87" rx="2" fill="#059669" opacity=".7"/>
+        <rect x="988" y="152" width="28" height="73" rx="2" fill="#059669" opacity=".7"/>
+        <rect x="1024" y="170" width="28" height="55" rx="2" fill="#059669" opacity=".7"/>
+        <text x="970" y="228" text-anchor="middle" font-size="18" fill="#059669" font-weight="900" font-family="Noto Sans SC">城市化</text>
+        <text x="970" y="248" text-anchor="middle" font-size="15" fill="#555" font-family="Noto Sans SC">17%→50%</text>
+      </g>
+      <!-- Arrow 4 -->
+      <g data-step="5">
+        <line x1="1082" y1="170" x2="1138" y2="170" stroke="#dc2626" stroke-width="4"/>
+        <polygon points="1142,164 1128,170 1142,176" fill="#dc2626"/>
+      </g>
+      <!-- Node 5: Global colonization (globe with arrows) -->
+      <g data-step="5">
+        <rect x="1140" y="100" width="220" height="140" rx="8" fill="#fff1f2" stroke="#dc2626" stroke-width="3"/>
+        <!-- Globe -->
+        <circle cx="1250" cy="162" r="38" fill="#dbeafe" stroke="#1d4ed8" stroke-width="2"/>
+        <!-- Continents simplified -->
+        <ellipse cx="1242" cy="148" rx="14" ry="18" fill="#059669" opacity=".7"/>
+        <ellipse cx="1266" cy="168" rx="10" ry="14" fill="#059669" opacity=".7"/>
+        <!-- Arrows from Britain outward -->
+        <line x1="1288" y1="148" x2="1330" y2="128" stroke="#dc2626" stroke-width="2"/>
+        <polygon points="1334,124 1322,130 1328,140" fill="#dc2626"/>
+        <line x1="1290" y1="168" x2="1335" y2="175" stroke="#dc2626" stroke-width="2"/>
+        <polygon points="1340,177 1327,168 1332,180" fill="#dc2626"/>
+        <text x="1250" y="215" text-anchor="middle" font-size="18" fill="#dc2626" font-weight="900" font-family="Noto Sans SC">殖民扩张</text>
+        <text x="1250" y="235" text-anchor="middle" font-size="15" fill="#555" font-family="Noto Sans SC">全球格局改变</text>
+      </g>
+      <!-- Arrow 5 -->
+      <g data-step="6">
+        <line x1="1362" y1="170" x2="1418" y2="170" stroke="#111" stroke-width="4"/>
+        <polygon points="1422,164 1408,170 1422,176" fill="#111"/>
+      </g>
+      <!-- Node 6: Today's world -->
+      <g data-step="6">
+        <rect x="1420" y="100" width="160" height="140" rx="8" fill="#f9fafb" stroke="#111" stroke-width="3"/>
+        <text x="1500" y="162" text-anchor="middle" font-size="52" font-family="Noto Sans SC">🌍</text>
+        <text x="1500" y="214" text-anchor="middle" font-size="18" fill="#111" font-weight="900" font-family="Noto Sans SC">今天</text>
+        <text x="1500" y="234" text-anchor="middle" font-size="15" fill="#555" font-family="Noto Sans SC">仍在影响</text>
+      </g>
+    </svg>
+  </div>
+</div>
+
+<!-- S6 PROGRESS VS COST — visual bar comparison -->
+<div class="slide">
+  <div style="display:flex;flex-direction:column;gap:32px;width:100%">
+    <div style="font-size:52px;font-weight:900;text-align:center">进步与代价——两根柱子</div>
+    <div style="display:flex;gap:80px;width:100%;align-items:flex-end;height:480px;padding:0 40px">
+      <!-- Progress bars -->
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:0">
+        <div style="font-size:30px;font-weight:900;color:var(--a3);margin-bottom:16px">✅ 进步</div>
+        <div style="display:flex;gap:24px;align-items:flex-end;height:360px">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:8px" data-step="1">
+            <div style="width:80px;height:0;background:var(--a3);border-radius:4px 4px 0 0;
+              transition:height 1s ease;border:2px solid var(--ink)" id="pb1"></div>
+            <div style="font-size:18px;font-weight:700;text-align:center;width:90px">生产力<br>×10</div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:8px" data-step="2">
+            <div style="width:80px;height:0;background:var(--a3);border-radius:4px 4px 0 0;
+              transition:height 1s ease;border:2px solid var(--ink)" id="pb2"></div>
+            <div style="font-size:18px;font-weight:700;text-align:center;width:90px">铁路<br>网络</div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:8px" data-step="3">
+            <div style="width:80px;height:0;background:var(--a3);border-radius:4px 4px 0 0;
+              transition:height 1s ease;border:2px solid var(--ink)" id="pb3"></div>
+            <div style="font-size:18px;font-weight:700;text-align:center;width:90px">城市<br>形成</div>
+          </div>
+        </div>
+      </div>
+      <!-- Divider -->
+      <div style="font-size:80px;font-weight:900;color:rgba(0,0,0,.15);align-self:center">|</div>
+      <!-- Cost bars -->
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:0">
+        <div style="font-size:30px;font-weight:900;color:var(--a5);margin-bottom:16px">⚠️ 代价</div>
+        <div style="display:flex;gap:24px;align-items:flex-end;height:360px">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:8px" data-step="4">
+            <div style="width:80px;height:0;background:var(--a5);border-radius:4px 4px 0 0;
+              transition:height 1s ease;border:2px solid var(--ink)" id="cb1"></div>
+            <div style="font-size:18px;font-weight:700;text-align:center;width:90px">童工<br>剥削</div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:8px" data-step="5">
+            <div style="width:80px;height:0;background:var(--a5);border-radius:4px 4px 0 0;
+              transition:height 1s ease;border:2px solid var(--ink)" id="cb2"></div>
+            <div style="font-size:18px;font-weight:700;text-align:center;width:90px">污染<br>公害</div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:8px" data-step="6">
+            <div style="width:80px;height:0;background:var(--a5);border-radius:4px 4px 0 0;
+              transition:height 1s ease;border:2px solid var(--ink)" id="cb3"></div>
+            <div style="font-size:18px;font-weight:700;text-align:center;width:90px">殖民<br>掠夺</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card" style="text-align:center" data-step="7">
+      <div style="font-size:26px">历史评价：不用"好/坏"简单判断——分析对<strong>不同群体</strong>的不同影响</div>
+    </div>
+  </div>
+</div>
+
+<!-- S7 LEGACY VISUAL -->
+<div class="slide">
+  <div style="display:flex;flex-direction:column;gap:28px;width:100%">
+    <div style="font-size:52px;font-weight:900;text-align:center">遗产：工业革命至今仍在运转</div>
+    <!-- 2x2 visual grid with scene illustrations -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:32px;width:100%">
+      <div class="card" style="display:flex;align-items:center;gap:24px" data-step="1">
+        <div style="font-size:64px;flex-shrink:0">⚡</div>
+        <div>
+          <div style="font-size:28px;font-weight:900;margin-bottom:8px">第四次工业革命（AI）</div>
+          <div style="font-size:22px;color:var(--dim)">蒸汽→电气→数字→AI<br>每次都重塑经济与社会关系</div>
+        </div>
+      </div>
+      <div class="card" style="display:flex;align-items:center;gap:24px" data-step="2">
+        <div style="font-size:64px;flex-shrink:0">🌡️</div>
+        <div>
+          <div style="font-size:28px;font-weight:900;margin-bottom:8px">气候变化的根源</div>
+          <div style="font-size:22px;color:var(--dim)">工业革命开启化石燃料消耗<br>200年后人类承担后果</div>
+        </div>
+      </div>
+      <div class="card" style="display:flex;align-items:center;gap:24px" data-step="3">
+        <div style="font-size:64px;flex-shrink:0">👷</div>
+        <div>
+          <div style="font-size:28px;font-weight:900;margin-bottom:8px">劳动权利与8小时工作制</div>
+          <div style="font-size:22px;color:var(--dim)">工人斗争的成果<br>今天的标准来自那个时代</div>
+        </div>
+      </div>
+      <div class="card" style="display:flex;align-items:center;gap:24px" data-step="4">
+        <div style="font-size:64px;flex-shrink:0">🇨🇳</div>
+        <div>
+          <div style="font-size:28px;font-weight:900;margin-bottom:8px">中国的工业化路径</div>
+          <div style="font-size:22px;color:var(--dim)">参照英国经验，经历相似挑战<br>在压缩的时间内完成转型</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- S8 KEY CONCLUSION -->
+<div class="slide">
+  <div style="display:flex;flex-direction:column;align-items:center;gap:40px;width:100%;position:relative;z-index:1">
+    <div style="position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,var(--a1),var(--a2))"></div>
+    <div style="font-size:80px;font-weight:900;text-align:center;line-height:1.15;color:var(--ink)" data-step="1">
+      工业革命不是一个事件<br>而是一个<span style="color:var(--a1)">转折点</span>
+    </div>
+    <div style="display:flex;gap:32px;width:100%" data-step="2">
+      <div style="flex:1;border-top:4px solid var(--a1);padding-top:24px">
+        <div style="font-size:56px;font-weight:900;color:var(--a1)">技术</div>
+        <div style="font-size:28px;font-weight:700;color:var(--ink);margin:8px 0">是起点</div>
+        <div style="font-size:22px;color:var(--dim);line-height:1.5">蒸汽机解放了人类体力</div>
+      </div>
+      <div style="flex:1;border-top:4px solid var(--a2);padding-top:24px">
+        <div style="font-size:56px;font-weight:900;color:var(--a2)">经济</div>
+        <div style="font-size:28px;font-weight:700;color:var(--ink);margin:8px 0">是结构</div>
+        <div style="font-size:22px;color:var(--dim);line-height:1.5">工厂制创造现代资本主义</div>
+      </div>
+      <div style="flex:1;border-top:4px solid var(--a5);padding-top:24px">
+        <div style="font-size:56px;font-weight:900;color:var(--a5)">社会</div>
+        <div style="font-size:28px;font-weight:700;color:var(--ink);margin:8px 0">是代价</div>
+        <div style="font-size:22px;color:var(--dim);line-height:1.5">贫富分化与阶级矛盾随之而来</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+<div id="prog-wrap"><div id="prog"></div></div>
+<div id="ctr"></div>
+
+<script>
+function scaleCanvas(){
+  const d=document.getElementById('deck');
+  const W=+d.dataset.w||1920,H=+d.dataset.h||1080;
+  const s=Math.min(innerWidth/W,innerHeight/H);
+  d.style.cssText=`width:${W}px;height:${H}px;transform:scale(${s});transform-origin:top left;margin-left:${(innerWidth-W*s)/2}px;margin-top:${(innerHeight-H*s)/2}px`;
+}
+window.addEventListener('resize',scaleCanvas);scaleCanvas();
+const slides=[...document.querySelectorAll('.slide')];
+let cur=0,stepIdx=0;
+const stepsOf=sl=>[...sl.querySelectorAll('[data-step]')].sort((a,b)=>+a.dataset.step-+b.dataset.step);
+const updateUI=()=>{
+  document.getElementById('prog').style.width=((cur+1)/slides.length*100)+'%';
+  document.getElementById('ctr').textContent=(cur+1)+' / '+slides.length;
+};
+const progressBars={pb1:240,pb2:180,pb3:280,cb1:220,cb2:200,cb3:260};
+function onRevealStep(si,sv){
+  if(si===1){ // Timeline
+    const evMap={'1':'ev1','2':'ev2','3':'ev3','4':'ev4','5':'ev5'};
+    const fill=[0,310,620,930,1480];
+    const idx=['1','2','3','4','5'].indexOf(sv);
+    if(idx>=0){
+      document.getElementById('ev'+(idx+1))?.style && (document.getElementById('ev'+(idx+1)).style.opacity='1');
+      document.getElementById('tlFill').style.width=fill[idx]+'px';
+    }
+    if(sv==='5')document.getElementById('tlFill').style.width='1480px';
+  }
+  if(si===3){// Urbanization
+    if(sv==='2'){document.getElementById('morePpl').style.opacity='1';}
+  }
+  const barId=Object.keys(progressBars).find(k=>sv===String(Object.keys(progressBars).indexOf(k)+1));
+  if(barId&&si===5){
+    const el=document.getElementById(barId);
+    if(el){setTimeout(()=>{el.style.height=progressBars[barId]+'px';},100);}
+  }
+}
+function gotoSlide(n){
+  if(n===cur)return;
+  const old=slides[cur];
+  cur=Math.max(0,Math.min(n,slides.length-1));
+  stepIdx=0;
+  const nsl=slides[cur];
+  old.classList.add('leaving');old.classList.remove('active');
+  nsl.style.display='flex';nsl.style.opacity='0';
+  nsl.getBoundingClientRect();
+  nsl.style.transition='opacity .48s ease';nsl.style.opacity='1';
+  nsl.classList.add('active');
+  stepsOf(nsl).forEach(e=>e.classList.remove('on'));
+  updateUI();
+  setTimeout(()=>{old.classList.remove('leaving');old.style.display='';nsl.style.transition='';nsl.style.opacity=''},520);
+}
+function advance(){
+  const steps=stepsOf(slides[cur]);
+  if(stepIdx<steps.length){
+    const sv=steps[stepIdx].dataset.step;
+    steps.filter(e=>e.dataset.step===sv).forEach(e=>e.classList.add('on'));
+    onRevealStep(cur,sv);
+    while(stepIdx<steps.length&&steps[stepIdx].dataset.step===sv)stepIdx++;
+  }else if(cur<slides.length-1){gotoSlide(cur+1)}
+}
+function retreat(){if(cur>0)gotoSlide(cur-1)}
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight'||e.key===' '){e.preventDefault();advance()}
+  if(e.key==='ArrowLeft'){e.preventDefault();retreat()}
+  if(e.key==='f')document.documentElement.requestFullscreen?.()
+});
+document.addEventListener('click',e=>{if(!e.target.closest('[data-interactive],button,a,input'))advance()});
+let tx=0;
+document.addEventListener('touchstart',e=>{tx=e.touches[0].clientX});
+document.addEventListener('touchend',e=>{const dx=e.changedTouches[0].clientX-tx;if(Math.abs(dx)>50){dx<0?advance():retreat()}});
+updateUI();
+</script>
+</body>
+</html>

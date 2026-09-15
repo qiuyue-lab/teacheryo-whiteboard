@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>牛顿第三定律 v2 · 力箭头即信息</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;900&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f5f0e8;--ink:#1a1410;--a1:#c8432a;--a2:#2a5fc8;--a3:#e8a020;--a4:#2a8c4a}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100%;background:#111;overflow:hidden;font-family:'Noto Sans SC',sans-serif}
+#deck{position:absolute;background:var(--bg);overflow:hidden}
+#deck::before{content:'';position:absolute;inset:0;
+  background:radial-gradient(circle,rgba(26,20,16,.09) 1.5px,transparent 1.5px);
+  background-size:40px 40px;pointer-events:none;z-index:0}
+.slide{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  padding:52px 80px;opacity:0;transition:opacity .48s ease;z-index:1}
+.slide.active{opacity:1;z-index:2}
+.slide.leaving{display:flex!important;opacity:0;pointer-events:none;z-index:1}
+[data-step]{opacity:0;transform:translateY(16px);transition:opacity .4s ease,transform .4s ease}
+[data-step].on{opacity:1;transform:translateY(0)}
+#prog-wrap{position:absolute;bottom:0;left:0;right:0;height:5px;background:rgba(26,20,16,.1);z-index:100}
+#prog{height:100%;background:var(--a1);transition:width .3s ease}
+#ctr{position:absolute;top:18px;right:28px;font-size:18px;color:rgba(26,20,16,.35);z-index:100}
+.label{font-size:28px;font-weight:900;text-align:center}
+.caption{font-size:22px;color:rgba(26,20,16,.55);text-align:center;margin-top:8px}
+
+/* ── Arrow helper ── */
+/* Force arrows: SVG clipPath-animated lines */
+.arrow-svg line{stroke-linecap:round}
+
+/* ── S1 COVER ── */
+.cover-title{font-size:100px;font-weight:900;line-height:1.05;text-align:center}
+.cover-hook{font-size:46px;color:var(--a1);font-weight:900;text-align:center;margin-top:16px}
+
+/* ── S2 PHENOMENA — 3 force-diagram panels ── */
+/* Each panel shows objects + arrows, no text explanation */
+.phen-row{display:flex;gap:40px;width:100%}
+.phen-panel{flex:1;background:#fff;border:2px solid var(--ink);border-radius:4px;
+  box-shadow:6px 6px 0 var(--ink);display:flex;flex-direction:column;align-items:center;
+  padding:32px 20px;gap:16px}
+.phen-title{font-size:32px;font-weight:900;color:var(--ink);text-align:center}
+.phen-q{font-size:22px;color:var(--a1);font-weight:700;text-align:center;min-height:52px}
+
+/* ── S3 DEFINITION — growing arrows ── */
+.def-scene{display:flex;flex-direction:column;align-items:center;gap:32px;width:100%}
+.blocks-row{display:flex;align-items:center;gap:0;position:relative;height:200px;width:100%}
+.block{width:220px;height:120px;border:3px solid var(--ink);border-radius:4px;
+  display:flex;align-items:center;justify-content:center;font-size:36px;font-weight:900;
+  box-shadow:6px 6px 0 var(--ink);flex-shrink:0}
+.arrow-space{flex:1;position:relative;height:200px}
+/* Arrows drawn inside SVG in arrow-space */
+.def-labels{display:flex;gap:0;width:100%;justify-content:space-between;margin-top:0}
+.def-label-box{flex:1;border:2px solid var(--ink);border-radius:4px;padding:20px 24px;
+  background:#fff;box-shadow:4px 4px 0 var(--ink);text-align:center}
+.def-label-name{font-size:30px;font-weight:900}
+.def-label-desc{font-size:22px;color:rgba(26,20,16,.6);margin-top:6px}
+
+/* ── S4 THREE FEATURES — three animated visual proofs ── */
+.feat-row{display:flex;gap:40px;width:100%}
+.feat-box{flex:1;background:#fff;border:2px solid var(--ink);border-radius:4px;
+  box-shadow:6px 6px 0 var(--ink);padding:28px 20px;display:flex;flex-direction:column;
+  align-items:center;gap:16px}
+.feat-title{font-size:34px;font-weight:900;text-align:center}
+.feat-rule{font-size:22px;color:rgba(26,20,16,.6);text-align:center;margin-top:4px}
+/* Scale SVG styles */
+.scale-beam{transition:transform .6s ease;transform-origin:center center}
+
+/* ── S5 MISCONCEPTION — side-by-side animated comparison ── */
+.mc-split{display:flex;gap:0;width:100%;border:3px solid var(--ink);border-radius:4px;overflow:hidden;box-shadow:6px 6px 0 var(--ink)}
+.mc-half{flex:1;padding:36px 32px;display:flex;flex-direction:column;align-items:center;gap:16px}
+.mc-left{background:#fee2e2;border-right:3px solid var(--ink)}
+.mc-right{background:#dcfce7}
+.mc-verdict{font-size:30px;font-weight:900;margin-top:8px}
+
+/* ── S6 CART EXPERIMENT (improved) ── */
+.exp-scene{display:flex;flex-direction:column;align-items:center;gap:28px;width:100%}
+.cart-stage{position:relative;width:1000px;height:200px;flex-shrink:0}
+.cart2{position:absolute;top:50px;width:180px;height:100px;border:3px solid var(--ink);
+  border-radius:4px;box-shadow:6px 6px 0 var(--ink);
+  display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:900;
+  transition:left .9s ease,right .9s ease}
+.c2a{left:300px;background:#fde68a}
+.c2b{right:300px;background:#bfdbfe}
+.c2a.go{left:20px}
+.c2b.go{right:20px}
+.spring2{position:absolute;left:50%;transform:translateX(-50%);top:75px;
+  width:44px;height:50px;border:3px solid var(--a3);border-radius:50%;
+  background:var(--a3);transition:width .3s ease,opacity .3s ease;z-index:1}
+.spring2.pop{width:220px;opacity:0}
+/* Force arrows on carts */
+.fa{position:absolute;top:40px;font-size:18px;font-weight:700;white-space:nowrap;
+  opacity:0;transition:opacity .4s ease .6s}
+.c2a.go .fa{opacity:1}
+.c2b.go .fa{opacity:1}
+.fa-a{right:calc(100% + 8px);color:var(--a1)}
+.fa-b{left:calc(100% + 8px);color:var(--a2)}
+.exp-note{display:flex;gap:32px;width:100%}
+.exp-card{flex:1;background:#fff;border:2px solid var(--ink);border-radius:4px;
+  padding:24px 20px;box-shadow:4px 4px 0 var(--ink);text-align:center;font-size:24px}
+
+/* ── S7 APPLICATIONS — force-diagram schematics ── */
+.app-row{display:flex;gap:40px;width:100%}
+.app-panel{flex:1;background:#fff;border:2px solid var(--ink);border-radius:4px;
+  box-shadow:6px 6px 0 var(--ink);padding:28px 16px;display:flex;flex-direction:column;
+  align-items:center;gap:12px}
+.app-name{font-size:32px;font-weight:900;text-align:center;color:var(--a2)}
+
+/* ── S8 CLOSING ── */
+.close-arrows{display:flex;align-items:center;justify-content:center;gap:0;margin:20px 0}
+</style>
+</head>
+<body>
+<div id="deck" data-w="1920" data-h="1080">
+
+<!-- ══════════════════ S1 COVER ══════════════════ -->
+<div class="slide active">
+  <div style="display:flex;flex-direction:column;align-items:center;gap:0;position:relative;z-index:1;width:100%">
+    <!-- Animated cover: two force arrows equal & opposite -->
+    <svg width="800" height="140" viewBox="0 0 800 140">
+      <!-- Block A -->
+      <rect x="60" y="30" width="200" height="80" rx="4" fill="#fde68a" stroke="#1a1410" stroke-width="3"/>
+      <text x="160" y="80" text-anchor="middle" font-size="28" font-weight="900" fill="#1a1410" font-family="Noto Sans SC">A</text>
+      <!-- Block B -->
+      <rect x="540" y="30" width="200" height="80" rx="4" fill="#bfdbfe" stroke="#1a1410" stroke-width="3"/>
+      <text x="640" y="80" text-anchor="middle" font-size="28" font-weight="900" fill="#1a1410" font-family="Noto Sans SC">B</text>
+      <!-- F: A→B -->
+      <line x1="262" y1="55" x2="538" y2="55" stroke="#c8432a" stroke-width="5"
+        stroke-dasharray="276" stroke-dashoffset="276" id="cvArrow1" style="transition:stroke-dashoffset 1s ease .3s"/>
+      <polygon id="cvHead1" points="538,48 558,55 538,62" fill="#c8432a" opacity="0" style="transition:opacity .3s ease 1.2s"/>
+      <text x="400" y="44" text-anchor="middle" font-size="20" fill="#c8432a" font-weight="900" font-family="Noto Sans SC" id="cvLbl1" opacity="0" style="transition:opacity .3s ease 1.3s">F（作用力）</text>
+      <!-- F': B→A -->
+      <line x1="538" y1="87" x2="262" y2="87" stroke="#2a5fc8" stroke-width="5"
+        stroke-dasharray="276" stroke-dashoffset="276" id="cvArrow2" style="transition:stroke-dashoffset 1s ease .5s"/>
+      <polygon id="cvHead2" points="262,80 242,87 262,94" fill="#2a5fc8" opacity="0" style="transition:opacity .3s ease 1.4s"/>
+      <text x="400" y="117" text-anchor="middle" font-size="20" fill="#2a5fc8" font-weight="900" font-family="Noto Sans SC" id="cvLbl2" opacity="0" style="transition:opacity .3s ease 1.5s">F'（反作用力）</text>
+    </svg>
+    <div class="cover-title">牛顿<span style="color:var(--a1)">第三</span>定律</div>
+    <div class="cover-hook">力 · 从不孤单，总是成对出现</div>
+    <div style="margin-top:24px;display:inline-block;background:var(--a2);color:#fff;
+      padding:12px 36px;font-size:26px;font-weight:700;border:2px solid var(--ink);
+      box-shadow:var(--cs,4px 4px 0 #1a1410);border-radius:4px">初中物理 · 20分钟</div>
+  </div>
+</div>
+
+<!-- ══════════════════ S2 PHENOMENA — pure diagrams ══════════════════ -->
+<!-- Each panel: objects drawn + force arrows drawn. Zero text explanation. -->
+<div class="slide">
+  <div style="display:flex;flex-direction:column;gap:32px;width:100%">
+    <div style="font-size:52px;font-weight:900;text-align:center">生活中的力对</div>
+    <div class="phen-row">
+      <!-- Trampoline -->
+      <div class="phen-panel" data-step="1">
+        <div class="phen-title">跳跳床</div>
+        <svg width="260" height="200" viewBox="0 0 260 200">
+          <!-- Person -->
+          <circle cx="130" cy="30" r="18" fill="#fde68a" stroke="#1a1410" stroke-width="3"/>
+          <line x1="130" y1="48" x2="130" y2="110" stroke="#1a1410" stroke-width="4"/>
+          <line x1="130" y1="70" x2="100" y2="95" stroke="#1a1410" stroke-width="4"/>
+          <line x1="130" y1="70" x2="160" y2="95" stroke="#1a1410" stroke-width="4"/>
+          <line x1="130" y1="110" x2="110" y2="140" stroke="#1a1410" stroke-width="4"/>
+          <line x1="130" y1="110" x2="150" y2="140" stroke="#1a1410" stroke-width="4"/>
+          <!-- Trampoline mat -->
+          <rect x="30" y="148" width="200" height="12" rx="4" fill="#e8a020" stroke="#1a1410" stroke-width="2"/>
+          <line x1="30" y1="160" x2="10" y2="190" stroke="#1a1410" stroke-width="3"/>
+          <line x1="230" y1="160" x2="250" y2="190" stroke="#1a1410" stroke-width="3"/>
+          <!-- F down (person presses mat) -->
+          <line x1="130" y1="140" x2="130" y2="158" stroke="#c8432a" stroke-width="4"/>
+          <polygon points="130,162 124,150 136,150" fill="#c8432a"/>
+          <text x="140" y="153" font-size="16" fill="#c8432a" font-weight="900" font-family="Noto Sans SC">F↓</text>
+          <!-- F' up (mat pushes person) -->
+          <line x1="110" y1="146" x2="110" y2="116" stroke="#2a5fc8" stroke-width="4"/>
+          <polygon points="110,112 104,124 116,124" fill="#2a5fc8"/>
+          <text x="60" y="128" font-size="16" fill="#2a5fc8" font-weight="900" font-family="Noto Sans SC">F'↑</text>
+        </svg>
+        <div class="phen-q">人压床 → 床弹人</div>
+      </div>
+      <!-- Swimming -->
+      <div class="phen-panel" data-step="2">
+        <div class="phen-title">游泳</div>
+        <svg width="260" height="200" viewBox="0 0 260 200">
+          <!-- Water waves -->
+          <path d="M10,120 Q65,100 130,120 Q195,140 250,120" fill="none" stroke="#bfdbfe" stroke-width="3"/>
+          <path d="M10,140 Q65,120 130,140 Q195,160 250,140" fill="none" stroke="#bfdbfe" stroke-width="3"/>
+          <!-- Swimmer body (horizontal) -->
+          <ellipse cx="130" cy="110" rx="70" ry="18" fill="#fde68a" stroke="#1a1410" stroke-width="3"/>
+          <!-- Head -->
+          <circle cx="205" cy="105" r="16" fill="#fde68a" stroke="#1a1410" stroke-width="3"/>
+          <!-- Arm pushing back -->
+          <path d="M90,110 Q60,130 30,125" stroke="#1a1410" stroke-width="4" fill="none" stroke-linecap="round"/>
+          <!-- F: hand pushes water back -->
+          <line x1="50" y1="122" x2="18" y2="126" stroke="#c8432a" stroke-width="4"/>
+          <polygon points="14,126 26,120 26,132" fill="#c8432a"/>
+          <text x="8" y="115" font-size="16" fill="#c8432a" font-weight="900" font-family="Noto Sans SC">F</text>
+          <!-- F': water pushes forward -->
+          <line x1="165" y1="100" x2="235" y2="96" stroke="#2a5fc8" stroke-width="4"/>
+          <polygon points="239,96 227,90 227,102" fill="#2a5fc8"/>
+          <text x="240" y="95" font-size="16" fill="#2a5fc8" font-weight="900" font-family="Noto Sans SC">F'</text>
+          <text x="32" y="175" font-size="14" fill="#c8432a" font-family="Noto Sans SC">手推水←</text>
+          <text x="148" y="175" font-size="14" fill="#2a5fc8" font-family="Noto Sans SC">水推人→</text>
+        </svg>
+        <div class="phen-q">手推水向后 → 水推人向前</div>
+      </div>
+      <!-- Rocket -->
+      <div class="phen-panel" data-step="3">
+        <div class="phen-title">火箭</div>
+        <svg width="260" height="200" viewBox="0 0 260 200">
+          <!-- Rocket body -->
+          <path d="M130,20 L150,80 L150,150 L110,150 L110,80 Z" fill="#e5e7eb" stroke="#1a1410" stroke-width="3"/>
+          <!-- Nose cone -->
+          <polygon points="130,5 150,80 110,80" fill="#c8432a" stroke="#1a1410" stroke-width="3"/>
+          <!-- Fins -->
+          <polygon points="110,130 85,165 110,150" fill="#e8a020" stroke="#1a1410" stroke-width="2"/>
+          <polygon points="150,130 175,165 150,150" fill="#e8a020" stroke="#1a1410" stroke-width="2"/>
+          <!-- Exhaust flames -->
+          <path d="M115,152 Q130,185 145,152" fill="#f97316" opacity=".8"/>
+          <path d="M120,152 Q130,178 140,152" fill="#fbbf24" opacity=".8"/>
+          <!-- F: gas shoots down -->
+          <line x1="150" y1="168" x2="170" y2="192" stroke="#c8432a" stroke-width="4"/>
+          <polygon points="173,196 163,183 176,185" fill="#c8432a"/>
+          <text x="174" y="195" font-size="15" fill="#c8432a" font-weight="900" font-family="Noto Sans SC">F↓</text>
+          <!-- F': rocket goes up -->
+          <line x1="100" y1="80" x2="100" y2="40" stroke="#2a5fc8" stroke-width="4"/>
+          <polygon points="100,36 94,48 106,48" fill="#2a5fc8"/>
+          <text x="60" y="58" font-size="15" fill="#2a5fc8" font-weight="900" font-family="Noto Sans SC">F'↑</text>
+        </svg>
+        <div class="phen-q">气体向下喷 → 火箭向上飞</div>
+      </div>
+    </div>
+    <div style="text-align:center;font-size:34px;font-weight:900" data-step="4">
+      三种现象，同一原理：<span style="color:var(--a1)">作用力</span> ↔ <span style="color:var(--a2)">反作用力</span>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ S3 DEFINITION — arrows grow simultaneously ══════════════════ -->
+<div class="slide" id="s3">
+  <div class="def-scene">
+    <div style="font-size:52px;font-weight:900;text-align:center">两个力，同时诞生，同时消失</div>
+    <!-- SVG scene: two blocks + growing arrows -->
+    <svg id="defSvg" width="1400" height="240" viewBox="0 0 1400 240" style="overflow:visible">
+      <!-- Block A -->
+      <rect x="100" y="70" width="240" height="100" rx="6" fill="#fde68a" stroke="#1a1410" stroke-width="4"/>
+      <text x="220" y="130" text-anchor="middle" font-size="40" font-weight="900" fill="#1a1410" font-family="Noto Sans SC">A（脚）</text>
+      <!-- Block B -->
+      <rect x="1060" y="70" width="240" height="100" rx="6" fill="#bfdbfe" stroke="#1a1410" stroke-width="4"/>
+      <text x="1180" y="130" text-anchor="middle" font-size="40" font-weight="900" fill="#1a1410" font-family="Noto Sans SC">B（地面）</text>
+
+      <!-- F arrow: A→B (grows right) -->
+      <line id="fLine" x1="342" y1="100" x2="342" y2="100" stroke="#c8432a" stroke-width="7" stroke-linecap="round"/>
+      <polygon id="fHead" points="342,88 362,100 342,112" fill="#c8432a" opacity="0"/>
+      <text id="fLbl" x="700" y="88" text-anchor="middle" font-size="28" fill="#c8432a" font-weight="900" font-family="Noto Sans SC" opacity="0">F（作用力）A 对 B 的力</text>
+
+      <!-- F' arrow: B→A (grows left) -->
+      <line id="fpLine" x1="1058" y1="142" x2="1058" y2="142" stroke="#2a5fc8" stroke-width="7" stroke-linecap="round"/>
+      <polygon id="fpHead" points="1058,130 1038,142 1058,154" fill="#2a5fc8" opacity="0"/>
+      <text id="fpLbl" x="700" y="172" text-anchor="middle" font-size="28" fill="#2a5fc8" font-weight="900" font-family="Noto Sans SC" opacity="0">F'（反作用力）B 对 A 的力</text>
+
+      <!-- Equal-length indicator (appears last) -->
+      <g id="eqIndicator" opacity="0">
+        <line x1="700" y1="94" x2="700" y2="150" stroke="#2a8c4a" stroke-width="3" stroke-dasharray="5,4"/>
+        <text x="716" y="126" font-size="24" fill="#2a8c4a" font-weight="900" font-family="Noto Sans SC">|F| = |F'|</text>
+      </g>
+    </svg>
+    <!-- Labels appear after animation -->
+    <div class="def-labels" id="defLabels" style="opacity:0;transition:opacity .5s ease">
+      <div class="def-label-box" style="border-color:var(--a1);box-shadow:4px 4px 0 var(--a1)">
+        <div class="def-label-name" style="color:var(--a1)">作用力 F</div>
+        <div class="def-label-desc">A 施加给 B<br>方向：A → B</div>
+      </div>
+      <div style="flex:0 0 120px;display:flex;align-items:center;justify-content:center;font-size:52px;font-weight:900">↕</div>
+      <div class="def-label-box" style="border-color:var(--a2);box-shadow:4px 4px 0 var(--a2)">
+        <div class="def-label-name" style="color:var(--a2)">反作用力 F'</div>
+        <div class="def-label-desc">B 施加给 A<br>方向：B → A</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ S4 THREE FEATURES — visual proofs, no text explanations ══════════════════ -->
+<div class="slide" id="s4">
+  <div style="display:flex;flex-direction:column;gap:32px;width:100%">
+    <div style="font-size:52px;font-weight:900;text-align:center">三个视觉证明</div>
+    <div class="feat-row">
+      <!-- Proof 1: Equal — balance scale tips and balances -->
+      <div class="feat-box" data-step="1">
+        <div class="feat-title" style="color:var(--a1)">① 大小相等</div>
+        <svg id="scaleSvg" width="280" height="180" viewBox="0 0 280 180">
+          <!-- Pivot -->
+          <polygon points="140,100 128,130 152,130" fill="#1a1410"/>
+          <rect x="130" y="128" width="20" height="40" fill="#1a1410"/>
+          <!-- Beam -->
+          <rect id="beam" x="30" y="94" width="220" height="10" rx="5" fill="#1a1410"
+            style="transform-origin:140px 99px;transform:rotate(0deg);transition:transform .8s ease"/>
+          <!-- Left pan + F arrow -->
+          <line id="lpan" x1="50" y1="104" x2="50" y2="130" stroke="#1a1410" stroke-width="3"/>
+          <rect id="lpanRect" x="25" y="130" width="50" height="14" rx="3" fill="#fde68a" stroke="#1a1410" stroke-width="2"/>
+          <text x="50" y="143" text-anchor="middle" font-size="13" fill="#1a1410" font-weight="900" font-family="Noto Sans SC">F</text>
+          <!-- Right pan + F' arrow -->
+          <line id="rpan" x1="230" y1="104" x2="230" y2="130" stroke="#1a1410" stroke-width="3"/>
+          <rect id="rpanRect" x="205" y="130" width="50" height="14" rx="3" fill="#bfdbfe" stroke="#1a1410" stroke-width="2"/>
+          <text x="230" y="143" text-anchor="middle" font-size="13" fill="#1a1410" font-weight="900" font-family="Noto Sans SC">F'</text>
+          <!-- Equal sign -->
+          <text id="eqSign" x="140" y="80" text-anchor="middle" font-size="24" fill="#2a8c4a" font-weight="900" font-family="Noto Sans SC" opacity="0" style="transition:opacity .4s ease">|F| = |F'|</text>
+        </svg>
+        <div class="feat-rule">两个力永远等大</div>
+      </div>
+      <!-- Proof 2: Opposite — arrows grow in opposite directions from center -->
+      <div class="feat-box" data-step="2">
+        <div class="feat-title" style="color:var(--a2)">② 方向相反</div>
+        <svg id="oppSvg" width="280" height="180" viewBox="0 0 280 180">
+          <!-- Center dot -->
+          <circle cx="140" cy="90" r="8" fill="#1a1410"/>
+          <!-- Arrow left (F') -->
+          <line id="arrL" x1="140" y1="70" x2="140" y2="70" stroke="#2a5fc8" stroke-width="6" stroke-linecap="round"/>
+          <polygon id="headL" points="140,65 130,78 150,78" fill="#2a5fc8" opacity="0"
+            style="transform-origin:140px 90px;transform:rotate(90deg)"/>
+          <text id="lblL" x="60" y="72" font-size="22" fill="#2a5fc8" font-weight="900" font-family="Noto Sans SC" opacity="0">F'←</text>
+          <!-- Arrow right (F) -->
+          <line id="arrR" x1="140" y1="110" x2="140" y2="110" stroke="#c8432a" stroke-width="6" stroke-linecap="round"/>
+          <polygon id="headR" points="140,115 130,102 150,102" fill="#c8432a" opacity="0"
+            style="transform-origin:140px 90px;transform:rotate(-90deg)"/>
+          <text id="lblR" x="156" y="115" font-size="22" fill="#c8432a" font-weight="900" font-family="Noto Sans SC" opacity="0">→F</text>
+          <!-- 180° label -->
+          <text id="deg180" x="140" y="160" text-anchor="middle" font-size="20" fill="#1a1410" font-weight="900" font-family="Noto Sans SC" opacity="0" style="transition:opacity .4s ease">夹角 180°</text>
+        </svg>
+        <div class="feat-rule">两箭头永远反向</div>
+      </div>
+      <!-- Proof 3: Different objects — A highlighted then B highlighted -->
+      <div class="feat-box" data-step="3">
+        <div class="feat-title" style="color:var(--a4)">③ 不同物体</div>
+        <svg id="objSvg" width="280" height="180" viewBox="0 0 280 180">
+          <!-- Block A -->
+          <rect id="objA" x="20" y="40" width="100" height="70" rx="4" fill="#fde68a" stroke="#1a1410" stroke-width="3"/>
+          <text x="70" y="82" text-anchor="middle" font-size="26" font-weight="900" fill="#1a1410" font-family="Noto Sans SC">A</text>
+          <!-- Block B -->
+          <rect id="objB" x="160" y="40" width="100" height="70" rx="4" fill="#bfdbfe" stroke="#1a1410" stroke-width="3"/>
+          <text x="210" y="82" text-anchor="middle" font-size="26" font-weight="900" fill="#1a1410" font-family="Noto Sans SC">B</text>
+          <!-- Arrow on B (from A's action) — highlighted when A is highlighted -->
+          <g id="arrowOnB" opacity="0" style="transition:opacity .3s ease">
+            <line x1="162" y1="68" x2="142" y2="68" stroke="#c8432a" stroke-width="4"/>
+            <polygon points="138,62 150,68 138,74" fill="#c8432a"/>
+            <text x="122" y="62" font-size="14" fill="#c8432a" font-weight="900" font-family="Noto Sans SC">F</text>
+          </g>
+          <!-- Arrow on A (from B's reaction) — highlighted when B is highlighted -->
+          <g id="arrowOnA" opacity="0" style="transition:opacity .3s ease">
+            <line x1="118" y1="90" x2="138" y2="90" stroke="#2a5fc8" stroke-width="4"/>
+            <polygon points="142,84 130,90 142,96" fill="#2a5fc8"/>
+            <text x="144" y="88" font-size="14" fill="#2a5fc8" font-weight="900" font-family="Noto Sans SC">F'</text>
+          </g>
+          <!-- Label -->
+          <text id="objNote" x="140" y="160" text-anchor="middle" font-size="18" fill="#2a8c4a" font-weight="900" font-family="Noto Sans SC" opacity="0">F 在 B，F' 在 A</text>
+        </svg>
+        <div class="feat-rule">各力作用于不同物体</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ S5 MISCONCEPTION — visual side-by-side ══════════════════ -->
+<div class="slide">
+  <div style="display:flex;flex-direction:column;gap:32px;width:100%">
+    <div style="font-size:52px;font-weight:900;text-align:center">⚠️ 最常见的误区</div>
+    <div class="mc-split">
+      <div class="mc-half mc-left" data-step="1">
+        <div style="font-size:30px;font-weight:900;color:var(--a1)">❌ 错误想法</div>
+        <!-- Wrong: two arrows on SAME object -->
+        <svg width="320" height="160" viewBox="0 0 320 160">
+          <rect x="110" y="40" width="100" height="80" rx="4" fill="#fde68a" stroke="#c8432a" stroke-width="4"/>
+          <text x="160" y="88" text-anchor="middle" font-size="28" font-weight="900" fill="#1a1410" font-family="Noto Sans SC">物体</text>
+          <!-- Two arrows BOTH on same object — pointing left and right -->
+          <line x1="108" y1="70" x2="50" y2="70" stroke="#c8432a" stroke-width="5"/>
+          <polygon points="46,64 60,70 46,76" fill="#c8432a"/>
+          <text x="30" y="62" font-size="18" fill="#c8432a" font-weight="900" font-family="Noto Sans SC">F</text>
+          <line x1="212" y1="90" x2="270" y2="90" stroke="#c8432a" stroke-width="5"/>
+          <polygon points="274,84 260,90 274,96" fill="#c8432a"/>
+          <text x="274" y="84" font-size="18" fill="#c8432a" font-weight="900" font-family="Noto Sans SC">F'</text>
+          <!-- Cancel symbol -->
+          <text x="160" y="148" text-anchor="middle" font-size="22" fill="#c8432a" font-weight="900" font-family="Noto Sans SC">两力"互相抵消"→ 合力=0？</text>
+        </svg>
+        <div class="mc-verdict" style="color:var(--a1)">两力作用在同一物体 → 能抵消 → 错！</div>
+      </div>
+      <div class="mc-half mc-right" data-step="2">
+        <div style="font-size:30px;font-weight:900;color:var(--a4)">✅ 正确理解</div>
+        <!-- Correct: each arrow on DIFFERENT object -->
+        <svg width="320" height="160" viewBox="0 0 320 160">
+          <!-- Object A (kicks) -->
+          <rect x="20" y="50" width="100" height="70" rx="4" fill="#fde68a" stroke="#2a8c4a" stroke-width="4"/>
+          <text x="70" y="92" text-anchor="middle" font-size="24" font-weight="900" fill="#1a1410" font-family="Noto Sans SC">A（脚）</text>
+          <!-- Object B (ground) -->
+          <rect x="200" y="50" width="100" height="70" rx="4" fill="#bfdbfe" stroke="#2a8c4a" stroke-width="4"/>
+          <text x="250" y="92" text-anchor="middle" font-size="24" font-weight="900" fill="#1a1410" font-family="Noto Sans SC">B（地）</text>
+          <!-- F on B (from A) -->
+          <line x1="198" y1="72" x2="158" y2="72" stroke="#c8432a" stroke-width="5"/>
+          <polygon points="154,66 168,72 154,78" fill="#c8432a"/>
+          <text x="154" y="65" font-size="15" fill="#c8432a" font-weight="900" font-family="Noto Sans SC">F→B</text>
+          <!-- F' on A (from B) -->
+          <line x1="122" y1="92" x2="162" y2="92" stroke="#2a5fc8" stroke-width="5"/>
+          <polygon points="166,86 152,92 166,98" fill="#2a5fc8"/>
+          <text x="152" y="87" font-size="15" fill="#2a5fc8" font-weight="900" font-family="Noto Sans SC">F'→A</text>
+          <text x="160" y="148" text-anchor="middle" font-size="18" fill="#2a8c4a" font-weight="900" font-family="Noto Sans SC">各在不同物体，无法抵消</text>
+        </svg>
+        <div class="mc-verdict" style="color:var(--a4)">两力各在不同物体 → 无法抵消 → 对！</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ S6 CART EXPERIMENT ══════════════════ -->
+<div class="slide">
+  <div class="exp-scene">
+    <div style="font-size:52px;font-weight:900;text-align:center">双车互推——力的大小相等，加速度不同</div>
+    <div class="cart-stage" id="cartStage">
+      <div class="cart2 c2a" id="c2a">
+        <div class="fa fa-a">← F'</div>
+        轻车 A
+      </div>
+      <div class="spring2" id="sp2"></div>
+      <div class="cart2 c2b" id="c2b">
+        <div class="fa fa-b">F →</div>
+        重车 B
+      </div>
+    </div>
+    <div class="exp-note" data-step="2">
+      <div class="exp-card">
+        <strong style="color:var(--a1)">两车受力相等</strong><br>弹簧同时推两车，F = F'
+      </div>
+      <div class="exp-card">
+        <strong style="color:var(--a2)">移动距离不同</strong><br>轻车加速大 a = F/m，走更远
+      </div>
+      <div class="exp-card">
+        <strong style="color:var(--a4)">结论</strong><br>力相等 ≠ 运动相同（F=ma）
+      </div>
+    </div>
+    <button onclick="fireSpring()" style="padding:14px 48px;font-size:26px;font-weight:700;
+      background:var(--a3);border:2px solid var(--ink);cursor:pointer;border-radius:4px;
+      box-shadow:4px 4px 0 var(--ink)" data-interactive>▶ 释放弹簧</button>
+  </div>
+</div>
+
+<!-- ══════════════════ S7 APPLICATIONS — pure force diagrams ══════════════════ -->
+<div class="slide">
+  <div style="display:flex;flex-direction:column;gap:32px;width:100%">
+    <div style="font-size:52px;font-weight:900;text-align:center">三个应用——只看力箭头</div>
+    <div class="app-row">
+      <!-- Rocket force diagram -->
+      <div class="app-panel" data-step="1">
+        <div class="app-name">🚀 火箭推进</div>
+        <svg width="240" height="200" viewBox="0 0 240 200">
+          <rect x="90" y="20" width="60" height="100" rx="6" fill="#e5e7eb" stroke="#1a1410" stroke-width="3"/>
+          <polygon points="120,5 140,80 100,80" fill="#c8432a" stroke="#1a1410" stroke-width="2"/>
+          <!-- F down (exhaust) -->
+          <line x1="150" y1="140" x2="150" y2="188" stroke="#c8432a" stroke-width="5"/>
+          <polygon points="150,192 143,180 157,180" fill="#c8432a"/>
+          <text x="158" y="178" font-size="18" fill="#c8432a" font-weight="900" font-family="Noto Sans SC">F↓</text>
+          <text x="106" y="188" font-size="14" fill="#c8432a" font-family="Noto Sans SC">燃气向下</text>
+          <!-- F' up (rocket) -->
+          <line x1="85" y1="70" x2="85" y2="22" stroke="#2a5fc8" stroke-width="5"/>
+          <polygon points="85,18 78,30 92,30" fill="#2a5fc8"/>
+          <text x="40" y="48" font-size="18" fill="#2a5fc8" font-weight="900" font-family="Noto Sans SC">F'↑</text>
+          <text x="18" y="64" font-size="14" fill="#2a5fc8" font-family="Noto Sans SC">火箭向上</text>
+        </svg>
+      </div>
+      <!-- Walker force diagram -->
+      <div class="app-panel" data-step="2">
+        <div class="app-name">🚶 走路迈步</div>
+        <svg width="240" height="200" viewBox="0 0 240 200">
+          <!-- Ground -->
+          <rect x="20" y="150" width="200" height="30" rx="4" fill="#e5e7eb" stroke="#1a1410" stroke-width="3"/>
+          <text x="120" y="171" text-anchor="middle" font-size="16" fill="#1a1410" font-family="Noto Sans SC">地面 B</text>
+          <!-- Stick person -->
+          <circle cx="120" cy="50" r="18" fill="#fde68a" stroke="#1a1410" stroke-width="3"/>
+          <line x1="120" y1="68" x2="120" y2="110" stroke="#1a1410" stroke-width="4"/>
+          <line x1="120" y1="80" x2="90" y2="105" stroke="#1a1410" stroke-width="4"/>
+          <line x1="120" y1="80" x2="150" y2="105" stroke="#1a1410" stroke-width="4"/>
+          <line x1="120" y1="110" x2="100" y2="148" stroke="#1a1410" stroke-width="4"/>
+          <line x1="120" y1="110" x2="140" y2="148" stroke="#1a1410" stroke-width="4"/>
+          <!-- F: foot pushes ground backward -->
+          <line x1="100" y1="148" x2="60" y2="148" stroke="#c8432a" stroke-width="5"/>
+          <polygon points="56,142 70,148 56,154" fill="#c8432a"/>
+          <text x="30" y="140" font-size="14" fill="#c8432a" font-weight="900" font-family="Noto Sans SC">F←</text>
+          <!-- F': ground pushes person forward -->
+          <line x1="140" y1="128" x2="185" y2="110" stroke="#2a5fc8" stroke-width="5"/>
+          <polygon points="188,106 176,116 184,124" fill="#2a5fc8"/>
+          <text x="186" y="105" font-size="14" fill="#2a5fc8" font-weight="900" font-family="Noto Sans SC">F'→</text>
+        </svg>
+      </div>
+      <!-- Swimming force diagram -->
+      <div class="app-panel" data-step="3">
+        <div class="app-name">🏊 游泳前进</div>
+        <svg width="240" height="200" viewBox="0 0 240 200">
+          <!-- Water -->
+          <path d="M10,110 Q60,90 120,110 Q180,130 230,110" fill="none" stroke="#93c5fd" stroke-width="3"/>
+          <path d="M10,130 Q60,110 120,130 Q180,150 230,130" fill="none" stroke="#93c5fd" stroke-width="3"/>
+          <!-- Swimmer body -->
+          <ellipse cx="120" cy="100" rx="70" ry="18" fill="#fde68a" stroke="#1a1410" stroke-width="3"/>
+          <circle cx="192" cy="94" r="14" fill="#fde68a" stroke="#1a1410" stroke-width="3"/>
+          <!-- Arm -->
+          <path d="M80,100 Q50,120 22,115" stroke="#1a1410" stroke-width="4" fill="none" stroke-linecap="round"/>
+          <!-- F: hand pushes water left -->
+          <line x1="36" y1="113" x2="14" y2="116" stroke="#c8432a" stroke-width="4"/>
+          <polygon points="10,116 22,110 22,122" fill="#c8432a"/>
+          <text x="4" y="106" font-size="15" fill="#c8432a" font-weight="900" font-family="Noto Sans SC">F←</text>
+          <!-- F': water pushes person right -->
+          <line x1="165" y1="90" x2="222" y2="86" stroke="#2a5fc8" stroke-width="4"/>
+          <polygon points="226,86 214,80 214,92" fill="#2a5fc8"/>
+          <text x="224" y="80" font-size="15" fill="#2a5fc8" font-weight="900" font-family="Noto Sans SC">F'→</text>
+        </svg>
+      </div>
+    </div>
+    <div style="text-align:center;font-size:30px;font-weight:700;color:rgba(26,20,16,.6)" data-step="4">
+      <span style="color:var(--a1)">红箭头</span> = 作用力 &nbsp;|&nbsp; <span style="color:var(--a2)">蓝箭头</span> = 反作用力 &nbsp;|&nbsp; 长度相等，方向相反
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ S8 CLOSING ══════════════════ -->
+<div class="slide">
+  <div style="display:flex;flex-direction:column;align-items:center;gap:36px;width:100%;position:relative;z-index:1">
+    <!-- Two equal opposing arrows as the visual summary -->
+    <svg width="600" height="100" viewBox="0 0 600 100">
+      <!-- Object A -->
+      <rect x="20" y="20" width="160" height="60" rx="4" fill="#fde68a" stroke="#1a1410" stroke-width="3"/>
+      <text x="100" y="57" text-anchor="middle" font-size="28" font-weight="900" fill="#1a1410" font-family="Noto Sans SC">A</text>
+      <!-- Object B -->
+      <rect x="420" y="20" width="160" height="60" rx="4" fill="#bfdbfe" stroke="#1a1410" stroke-width="3"/>
+      <text x="500" y="57" text-anchor="middle" font-size="28" font-weight="900" fill="#1a1410" font-family="Noto Sans SC">B</text>
+      <!-- F -->
+      <line x1="182" y1="42" x2="418" y2="42" stroke="#c8432a" stroke-width="6"/>
+      <polygon points="422,36 408,42 422,48" fill="#c8432a"/>
+      <text x="300" y="36" text-anchor="middle" font-size="20" fill="#c8432a" font-weight="900" font-family="Noto Sans SC">F</text>
+      <!-- F' -->
+      <line x1="418" y1="62" x2="182" y2="62" stroke="#2a5fc8" stroke-width="6"/>
+      <polygon points="178,56 192,62 178,68" fill="#2a5fc8"/>
+      <text x="300" y="80" text-anchor="middle" font-size="20" fill="#2a5fc8" font-weight="900" font-family="Noto Sans SC">F'</text>
+    </svg>
+    <div style="font-size:72px;font-weight:900;text-align:center;line-height:1.15" data-step="1">
+      没有单独的力<br>力总是<span style="color:var(--a1)">成对</span>出现
+    </div>
+    <div style="font-size:32px;color:rgba(26,20,16,.55);text-align:center;font-style:italic" data-step="1">
+      Every action has an equal and opposite reaction. — Newton
+    </div>
+    <div style="display:flex;gap:24px" data-step="2">
+      <div style="background:var(--a1);color:#fff;padding:16px 32px;font-size:26px;font-weight:700;
+        border:2px solid var(--ink);box-shadow:4px 4px 0 var(--ink);border-radius:4px">大小相等</div>
+      <div style="background:var(--a2);color:#fff;padding:16px 32px;font-size:26px;font-weight:700;
+        border:2px solid var(--ink);box-shadow:4px 4px 0 var(--ink);border-radius:4px">方向相反</div>
+      <div style="background:var(--a4);color:#fff;padding:16px 32px;font-size:26px;font-weight:700;
+        border:2px solid var(--ink);box-shadow:4px 4px 0 var(--ink);border-radius:4px">不同物体</div>
+    </div>
+  </div>
+</div>
+
+</div>
+<div id="prog-wrap"><div id="prog"></div></div>
+<div id="ctr"></div>
+
+<script>
+function scaleCanvas(){
+  const d=document.getElementById('deck');
+  const W=+d.dataset.w||1920,H=+d.dataset.h||1080;
+  const s=Math.min(innerWidth/W,innerHeight/H);
+  d.style.cssText=`width:${W}px;height:${H}px;transform:scale(${s});transform-origin:top left;margin-left:${(innerWidth-W*s)/2}px;margin-top:${(innerHeight-H*s)/2}px`;
+}
+window.addEventListener('resize',scaleCanvas);scaleCanvas();
+
+const slides=[...document.querySelectorAll('.slide')];
+let cur=0,stepIdx=0;
+const stepsOf=sl=>[...sl.querySelectorAll('[data-step]')].sort((a,b)=>+a.dataset.step-+b.dataset.step);
+const updateUI=()=>{
+  document.getElementById('prog').style.width=((cur+1)/slides.length*100)+'%';
+  document.getElementById('ctr').textContent=(cur+1)+' / '+slides.length;
+};
+
+function onEnter(i){
+  if(i===0){ // S1: cover arrows animate
+    setTimeout(()=>{
+      document.getElementById('cvArrow1').style.strokeDashoffset='0';
+      document.getElementById('cvArrow2').style.strokeDashoffset='0';
+    },500);
+    setTimeout(()=>{
+      document.getElementById('cvHead1').style.opacity='1';
+      document.getElementById('cvHead2').style.opacity='1';
+      document.getElementById('cvLbl1').style.opacity='1';
+      document.getElementById('cvLbl2').style.opacity='1';
+    },1400);
+  }
+  if(i===2){ // S3: definition arrows grow on enter
+    setTimeout(()=>animateDefArrows(),600);
+  }
+}
+
+function animateDefArrows(){
+  // F arrow: x2 grows from 342 to 1058
+  const fLine=document.getElementById('fLine');
+  const fpLine=document.getElementById('fpLine');
+  let x2f=342, x2fp=1058;
+  const target_f=1058, target_fp=342;
+  const dur=800, start=performance.now();
+  function step(t){
+    const p=Math.min((t-start)/dur,1);
+    const ease=1-Math.pow(1-p,3);
+    fLine.setAttribute('x2', 342+ease*(target_f-342));
+    fpLine.setAttribute('x2', 1058+ease*(target_fp-1058));
+    if(p<1){requestAnimationFrame(step)}
+    else{
+      document.getElementById('fHead').style.opacity='1';
+      document.getElementById('fpHead').style.opacity='1';
+      setTimeout(()=>{
+        document.getElementById('fLbl').style.opacity='1';
+        document.getElementById('fpLbl').style.opacity='1';
+        document.getElementById('eqIndicator').style.opacity='1';
+        document.getElementById('defLabels').style.opacity='1';
+      },300);
+    }
+  }
+  requestAnimationFrame(step);
+}
+
+let s4step=0;
+function doS4Reveal(sv){
+  if(sv==='1'){ // Scale balance animation
+    const beam=document.getElementById('beam');
+    setTimeout(()=>{beam.style.transform='rotate(8deg)'},200);
+    setTimeout(()=>{beam.style.transform='rotate(0deg)';
+      document.getElementById('eqSign').style.opacity='1';},1000);
+  }
+  if(sv==='2'){ // Opposite arrows grow
+    const aL=document.getElementById('arrL'),aR=document.getElementById('arrR');
+    let p=0;
+    const go=()=>{
+      p=Math.min(p+0.04,1);
+      aL.setAttribute('x2',140-p*90);
+      aR.setAttribute('x2',140+p*90);
+      if(p<1){requestAnimationFrame(go)}
+      else{
+        ['headL','headR','lblL','lblR','deg180'].forEach(id=>{
+          document.getElementById(id).style.opacity='1';
+        });
+      }
+    };
+    requestAnimationFrame(go);
+  }
+  if(sv==='3'){ // Highlight objects alternately
+    const oA=document.getElementById('objA'),oB=document.getElementById('objB');
+    const onB=document.getElementById('arrowOnB'),onA=document.getElementById('arrowOnA');
+    const note=document.getElementById('objNote');
+    // Highlight A & show F on B
+    oA.setAttribute('stroke','#c8432a');oA.setAttribute('stroke-width','5');
+    onB.style.opacity='1';
+    setTimeout(()=>{
+      // Switch: highlight B & show F' on A
+      oA.setAttribute('stroke','#1a1410');oA.setAttribute('stroke-width','3');
+      oB.setAttribute('stroke','#2a5fc8');oB.setAttribute('stroke-width','5');
+      onA.style.opacity='1';
+      note.style.opacity='1';
+    },1200);
+  }
+}
+
+function gotoSlide(n){
+  if(n===cur)return;
+  const old=slides[cur];
+  cur=Math.max(0,Math.min(n,slides.length-1));
+  stepIdx=0;
+  const nsl=slides[cur];
+  old.classList.add('leaving');old.classList.remove('active');
+  nsl.style.display='flex';nsl.style.opacity='0';
+  nsl.getBoundingClientRect();
+  nsl.style.transition='opacity .48s ease';nsl.style.opacity='1';
+  nsl.classList.add('active');
+  stepsOf(nsl).forEach(e=>e.classList.remove('on'));
+  updateUI();onEnter(cur);
+  setTimeout(()=>{old.classList.remove('leaving');old.style.display='';nsl.style.transition='';nsl.style.opacity=''},520);
+}
+function advance(){
+  const steps=stepsOf(slides[cur]);
+  if(stepIdx<steps.length){
+    const sv=steps[stepIdx].dataset.step;
+    steps.filter(e=>e.dataset.step===sv).forEach(e=>e.classList.add('on'));
+    doS4Reveal(sv);
+    while(stepIdx<steps.length&&steps[stepIdx].dataset.step===sv)stepIdx++;
+  }else if(cur<slides.length-1){gotoSlide(cur+1)}
+}
+function retreat(){if(cur>0)gotoSlide(cur-1)}
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight'||e.key===' '){e.preventDefault();advance()}
+  if(e.key==='ArrowLeft'){e.preventDefault();retreat()}
+  if(e.key==='f')document.documentElement.requestFullscreen?.()
+});
+document.addEventListener('click',e=>{if(!e.target.closest('[data-interactive],button,a,input'))advance()});
+let tx=0;
+document.addEventListener('touchstart',e=>{tx=e.touches[0].clientX});
+document.addEventListener('touchend',e=>{const dx=e.changedTouches[0].clientX-tx;if(Math.abs(dx)>50){dx<0?advance():retreat()}});
+
+let fired=false;
+function fireSpring(){
+  if(fired)return;fired=true;
+  document.getElementById('sp2').classList.add('pop');
+  setTimeout(()=>{
+    document.getElementById('c2a').classList.add('go');
+    document.getElementById('c2b').classList.add('go');
+  },200);
+}
+
+onEnter(0);updateUI();
+</script>
+</body>
+</html>
