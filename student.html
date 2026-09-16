@@ -94,7 +94,7 @@ const S = {
   board: null, units: null, meta: null, name: '',
   qIdx: 0, choiceSel: [], subbed: [],
   selColor: '', selQuestion: 0,
-  boardRows: [], poll: null, materialSels: [],
+  boardRows: [], poll: null, materialSels: [], imgData: '',
   boot() {
     const bid = new URLSearchParams(location.search).get('b');
     const code = (new URLSearchParams(location.search).get('c') || '').trim();
@@ -324,12 +324,19 @@ const S = {
             `<button type="button" class="shape-btn${i === 0 ? ' on' : ''}" data-s="${s.k}" onclick="S.selShape='${s.k}';document.querySelectorAll('#stu-ss .shape-btn').forEach(x=>x.classList.remove('on'));this.classList.add('on')">${s.icon}<span>${s.name}</span></button>`
           ).join('')}</div></div>
         <div class="field"><label>写下你的想法</label>
-          <textarea id="stu-note-text" placeholder="把想法写在便签上，贴到白板任意位置…" style="min-height:90px"></textarea></div>
+          <textarea id="stu-note-text" placeholder="把想法写在便签上，贴到白板任意位置…（也可以只加一张图片）" style="min-height:90px"></textarea>
+          <div class="stu-img-row">
+            <button type="button" class="stu-img-btn" id="stu-img-btn">📎 加一张图片</button>
+            <span class="stu-img-hint" id="stu-img-hint">可选 · 会自动压缩</span>
+            <input type="file" id="stu-img-input" accept="image/*" hidden>
+          </div>
+          <div class="stu-img-preview" id="stu-img-preview" hidden></div></div>
         <button class="btn btn-primary" style="width:100%;padding:13px" onclick="S.submitNoteFromBoard()">贴上便签 ✨</button>
         <div class="side-note" style="text-align:center;margin-top:8px">贴上去后可拖动位置，拉右下角可调大小；白板可双指缩放/拖动</div>`;
       area.innerHTML = h;
       this.selColor = this.selColor || 'yellow';
       this.selShape = this.selShape || 'square';
+      this.bindImgPicker();
       setTimeout(() => { const t = document.getElementById('stu-note-text'); if (t) t.focus(); }, 80);
     } else if (b.type === 'choice') {
       const u = units[0];
@@ -376,16 +383,85 @@ const S = {
   },
 
   /* ---------- 提交方法 ---------- */
+  /* 便签带图：选图 → 压缩 → 存到 this.imgData；输入区不会被 3s 轮询重建，所以状态能留住 */
+  bindImgPicker() {
+    const btn = document.getElementById('stu-img-btn');
+    const fi = document.getElementById('stu-img-input');
+    if (!btn || !fi) return;
+    btn.onclick = () => fi.click();
+    fi.onchange = (e) => {
+      const f = e.target.files && e.target.files[0];
+      e.target.value = '';   // 清空，允许连续选同一张图
+      if (!f) return;
+      const hint = document.getElementById('stu-img-hint');
+      if (hint) hint.textContent = '处理中…';
+      this.compressImage(f)
+        .then((d) => {
+          this.imgData = d;
+          this.setImgPreview();
+          if (hint) hint.textContent = '图片已加上 · 点下方按钮贴上';
+        })
+        .catch((err) => { if (hint) hint.textContent = '可选 · 会自动压缩'; toast(err.message); });
+    };
+    this.setImgPreview();
+  },
+  setImgPreview() {
+    const box = document.getElementById('stu-img-preview');
+    if (!box) return;
+    if (!this.imgData) { box.hidden = true; box.innerHTML = ''; return; }
+    box.hidden = false;
+    box.innerHTML = '<img src="' + esc(this.imgData) + '" alt="图片预览"><button type="button" class="stu-img-clear" title="移除图片">✕</button>';
+    box.querySelector('.stu-img-clear').onclick = () => {
+      this.imgData = '';
+      const hint = document.getElementById('stu-img-hint');
+      if (hint) hint.textContent = '可选 · 会自动压缩';
+      this.setImgPreview();
+    };
+  },
+  /* 等比压到 720px 内 + JPEG 0.72，避免把大图塞进数据库（与老师端 compressImage 一致） */
+  compressImage(file) {
+    return new Promise((resolve, reject) => {
+      const fr = new FileReader();
+      fr.onerror = () => reject(new Error('图片读取失败'));
+      fr.onload = () => {
+        const im = new Image();
+        im.onerror = () => reject(new Error('图片解析失败'));
+        im.onload = () => {
+          const max = 720;
+          let w = im.width || max, h = im.height || max;
+          if (w > max) { h = Math.round(h * max / w); w = max; }
+          if (h > max) { w = Math.round(w * max / h); h = max; }
+          const cv = document.createElement('canvas');
+          cv.width = w; cv.height = h;
+          const cx = cv.getContext('2d');
+          cx.fillStyle = '#fff'; cx.fillRect(0, 0, w, h);   // PNG 透明底转白，免得变黑块
+          cx.drawImage(im, 0, 0, w, h);
+          try { resolve(cv.toDataURL('image/jpeg', 0.72)); }
+          catch (err) { resolve(fr.result); }
+        };
+        im.src = fr.result;
+      };
+      fr.readAsDataURL(file);
+    });
+  },
   submitNoteFromBoard() {
-    const text = (document.getElementById('stu-note-text').value || '').trim();
-    if (!text) { toast('写点内容再贴吧'); return; }
+    const ta = document.getElementById('stu-note-text');
+    const text = ((ta && ta.value) || '').trim();
+    const img = this.imgData || '';
+    if (!text && !img) { toast('写点内容或加一张图片再贴吧'); return; }
     const u = this.units[0];
     // 自动找最空的位置落点：以「你当前看到的视口中心」为起点，避免便签叠在一起
     const spot = findFreeSpot(this.boardRows.filter((r) => r.type === 'note'), TY._ncCenterLast);
-    TY.db.submit({ boardId: this.board.id, type: 'note', partIdx: u.qIdx, author: this.name, data: { text, color: this.selColor, shape: this.selShape || 'square', px: spot.x, py: spot.y, w: 170 } })
+    const data = { text, color: this.selColor, shape: this.selShape || 'square', px: spot.x, py: spot.y, w: img ? 210 : 170 };
+    if (img) data.img = img;   // 只有真加了图才写这个字段，避免空串撑大数据库
+    TY.db.submit({ boardId: this.board.id, type: 'note', partIdx: u.qIdx, author: this.name, data })
       .then(() => {
         toast('贴好啦，可拖动调整位置 ✨');
-        document.getElementById('stu-note-text').value = '';
+        if (ta) ta.value = '';
+        this.imgData = '';
+        const hint = document.getElementById('stu-img-hint');
+        if (hint) hint.textContent = '可选 · 会自动压缩';
+        this.setImgPreview();
         this.refreshBoard();
         setTimeout(() => { const t = document.getElementById('stu-note-text'); if (t) t.focus(); }, 60);
       })

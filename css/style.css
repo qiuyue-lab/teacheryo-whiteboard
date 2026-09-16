@@ -275,3 +275,13 @@ html.nc-full-lock,html.nc-full-lock body{overflow:hidden!important;height:100%}
 .legend .dotc{width:10px;height:10px;border-radius:3px;border:1px solid rgba(0,0,0,.2);flex-shrink:0}
 
 .loading-zone{padding:50px 0;text-align:center;color:var(--ink-3);font-weight:700}
+
+/* 学生端便签带图：选图按钮 + 预览（老师端 .dk-* 的简化版，风格对齐） */
+.stu-img-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px}
+.stu-img-btn{border:2px dashed var(--line);background:#fff;border-radius:10px;padding:7px 12px;font-size:12.5px;font-weight:800;font-family:inherit;color:var(--ink-2);cursor:pointer;transition:.15s}
+.stu-img-btn:hover{background:var(--accent-soft,#FBE7C9);border-color:var(--accent);color:var(--ink)}
+.stu-img-hint{font-size:11px;font-weight:800;color:var(--ink-3)}
+.stu-img-preview{position:relative;display:inline-block;margin-top:9px;max-width:100%}
+.stu-img-preview img{display:block;max-width:100%;max-height:150px;border-radius:10px;border:2px solid var(--line);background:#fff}
+.stu-img-preview .stu-img-clear{position:absolute;right:-8px;top:-8px;width:24px;height:24px;border-radius:50%;border:2px solid var(--line);background:#fff;cursor:pointer;font-size:12px;font-weight:900;line-height:1;color:var(--ink-2);padding:0}
+.stu-img-preview .stu-img-clear:hover{background:#FEE2E2;color:#B91C1C;border-color:#FCA5A5}
