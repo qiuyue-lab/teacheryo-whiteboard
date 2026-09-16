@@ -61,6 +61,9 @@ PostgreSQL。两种模式对外暴露的方法名、字段名（snake_case）完
 
 互动类型有 5 种：notes(便签墙) / choice(选择题) / blank(填空题) / cloud(词云) / material(材料学习)
 
+便签墙的便签可以带图（老师和学生都能带，也可以只传图不写字）：
+图片在前端压成 dataURL 后存在 submissions 的 data.img 字段里，两端共用同一个渲染器。
+
 请你先读一下 README.md 和 AI-PROMPT.md，确认你理解了结构，再等我下一步指令。
 ```
 

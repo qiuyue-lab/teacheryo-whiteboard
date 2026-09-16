@@ -63,6 +63,15 @@ envId 有值  →  CloudBase 实现（匿名登录 + app.rdb()）
 白板内拖拽、缩放、老师面板打开、输入框聚焦时，它必须返回 `true`，
 否则 2.5s 轮询重绘会**清空老师正在写的内容**。新增任何输入 UI 都要接进这个判断。
 
+⚠️ **学生端目前没有接这个刹车**，而是靠"输入区根本没被轮询重建"侥幸安全：
+`refreshBoard()` 里重调 `bindInput()` 的分支**只对 `material` 类型生效**，
+`notes` 类型的输入区从头到尾没被重绘过。
+所以学生端图片状态刻意存在 **`S.imgData`（JS 对象）而不是 DOM 里**，
+并用**幂等**的 `S.setImgPreview()` 回填 ——
+**如果哪天给 `notes` 也加上轮询重绘，必须保留这个"状态在对象上 + 幂等回填"的结构**，
+否则学生正在选的图片会在 3 秒后凭空消失，而且不报任何错。
+（详细复盘见 skill 的 `references/pitfalls.md` 坑 20。）
+
 ### 6. 凭据永不进仓库
 
 真实 `envId` / `accessKey` 只写 `config.local.js`（已在 `.gitignore`）。
@@ -86,7 +95,7 @@ git grep --cached -I -e "<envId>" -e "<accessKey>"
 | 文件 | 职责 | 改它的风险 |
 |---|---|---|
 | `index.html` | 老师端全部逻辑（课程、发起互动、大屏、下发弹窗） | 高，改前先读懂 `renderBoardBody` |
-| `student.html` | 学生端（输码进入、共享看板、提交） | 中 |
+| `student.html` | 学生端（输码进入、共享看板、提交、便签带图 `S.imgData` / `bindImgPicker` / `setImgPreview` / `compressImage`） | 中，动图片状态前先读约束 5 |
 | `js/common.js` | 公共渲染器：无限画布、便签渲染、一键整理、各类型结果渲染 | **最高**，前后端共用 |
 | `js/db.js` | 数据层入口：环境探测 + 两模式共用工具 | 高（见约束 2） |
 | `js/store.local.js` | 本地模式实现（localStorage） | 高（见约束 2） |
@@ -137,6 +146,11 @@ python3 -m http.server 8921 --bind 127.0.0.1
 - 已开源：`github.com/qiuyue-lab/teacheryo-whiteboard`（MIT，gh 账号 `qiuyue-lab`）
 - 已内置 `.workbuddy/skills/visual-cognition-slides/`（MIT，来源 edu-ai-builders），
   作为项目的视觉设计语言参考
+- **便签带图两端都有**：老师端 `.note-dock-wrap`（`App.compressImage`，`w:230`），
+  学生端 `S.bindImgPicker` / `S.compressImage`（`w:210`）。
+  两端共用渲染：`common.js` 里 `data.img → .note-mini .note-img`，元数据统一是
+  `submissions.data.img`（dataURL 字符串）。**只图无字也允许提交。**
+  压缩参数：等比 720px 内 + `toDataURL('image/jpeg', 0.72)`，PNG 透明底先填白。
 
 **悬而未决**：
 
