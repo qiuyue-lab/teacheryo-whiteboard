@@ -94,7 +94,7 @@ const S = {
   board: null, units: null, meta: null, name: '',
   qIdx: 0, choiceSel: [], subbed: [],
   selColor: '', selQuestion: 0,
-  boardRows: [], poll: null, materialSels: [], imgData: '',
+  boardRows: [], poll: null, materialSels: [], imgData: '', renaming: false,
   boot() {
     const bid = new URLSearchParams(location.search).get('b');
     const code = (new URLSearchParams(location.search).get('c') || '').trim();
@@ -177,6 +177,7 @@ const S = {
   renderGate() {
     const app = document.getElementById('app');
     const b = this.board; const t = TYPES[b.type];
+    if (b.type === 'rollcall') { this.renderSignGate(); return; }   // 点名：名字就是全部内容，单独一页
     let title = b.title, desc = '';
     if (b.type === 'material') title = (this.meta.material || {}).title;
     desc = (b.type === 'material' && (this.meta.material || {}).desc) || '';
@@ -191,6 +192,55 @@ const S = {
       </div>
       <div class="side-note" style="text-align:center">无需注册 · 提交后老师大屏实时可见</div>`;
     setTimeout(() => document.getElementById('my-name').focus(), 80);
+  },
+  /* 随机点名：扫码后的第一屏 —— 填名字 → 提交进池 */
+  renderSignGate() {
+    const b = this.board;
+    const app = document.getElementById('app');
+    const tip = (b.config || {}).question || '先报个名，一会儿随机点同学';
+    app.innerHTML = `
+      <div class="hero-mini name-gate">
+        <span class="hm-tag" style="background:var(--ok-soft);color:${TYPES.rollcall.c}">${TYPES.rollcall.icon} 随机点名</span>
+        <h1>${esc(tip)}</h1>
+        <div class="q-desc">填上你的名字加入点名池，老师会从名册里随机抽人（也可能随机分组）。</div>
+        <div class="field" style="margin-top:16px"><label>你的名字</label>
+        <input id="my-name" placeholder="真名或常用称呼都行" maxlength="12" value="${esc(localStorage.getItem('ty_name') || '')}"></div>
+        <button class="btn btn-primary" onclick="S.signIn()">✓ 提交，加入点名池</button>
+      </div>
+      <div class="side-note" style="text-align:center">无需注册 · 名字只会出现在老师的点名名册上</div>`;
+    const inp = document.getElementById('my-name');
+    setTimeout(() => inp && inp.focus(), 80);
+    if (inp) inp.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') this.signIn(); });
+  },
+  /* 报名 = 往 submissions 写一条 type='signin'（复用已有接口，没有新表） */
+  async signIn(fromBoard) {
+    const el = document.getElementById(fromBoard ? 'stu-sign-name' : 'my-name');
+    const v = ((el && el.value) || '').trim();
+    if (!v) { toast('写个名字再提交吧'); return; }
+    this.name = v; localStorage.setItem('ty_name', v);
+    try {
+      // 改名字：先把自己上一次的报名删掉，否则名册里会同时挂着新旧两个名字
+      // （按 uid 认自己：云端一台设备一个 uid，本地模式一台浏览器一个 uid）
+      if (this.renaming) {
+        this.renaming = false;
+        const all = await TY.db.listSubmissions(this.board.id);
+        const me = await TY.db.currentUid();
+        const mine = all.filter((r) => r.type === 'signin' && r.uid === me);
+        for (let i = 0; i < mine.length; i++) await TY.db.removeSubmission(mine[i].id);
+      }
+      await TY.db.submit({ boardId: this.board.id, type: 'signin', partIdx: 0, author: v, data: { name: v } });
+      this.markSubmitted(0);
+      toast('报名成功 ✅ 等老师点名');
+      this.renderBoard();
+    } catch (e) { toast(e.message); }
+  },
+  /* 改名字：清掉本机「已报名」标记 → 重填 → 重新提交（旧的那条会顺手删掉） */
+  changeName() {
+    this.renaming = true;
+    delete this.subbed[0];
+    localStorage.setItem('ty_subbed_' + this.board.id, JSON.stringify(this.subbed));
+    this.bindInput();
+    setTimeout(() => { const i = document.getElementById('stu-sign-name'); if (i) i.focus(); }, 60);
   },
   enter() {
     const v = (document.getElementById('my-name').value || '').trim() || '匿名同学';
@@ -222,6 +272,14 @@ const S = {
     // 启动轮询
     this.startPoll();
   },
+  /* 计数口径：点名看「人数」（同一人只算一次），其余看提交条数 */
+  headCount() {
+    return this.board.type === 'rollcall' ? rosterItems(this.boardRows).length : this.boardRows.length;
+  },
+  unitCount(u) {
+    const rows = subsOf(this.boardRows, u);
+    return (u.subType === 'signin') ? rosterItems(rows).length : rows.length;
+  },
   buildBoardHTML(units, meta) {
     const b = this.board; const t = TYPES[b.type];
     let h = '';
@@ -229,7 +287,7 @@ const S = {
     h += `<div class="hero-mini">
       <span class="hm-tag" style="background:var(--ok-soft);color:${t.c}">${t.icon} ${t.name}</span>
       <h1>${esc(b.title || t.name)}</h1>
-      <div class="stu-board-header"><span class="stu-live"><i></i>实时 · <span id="stu-total">${this.boardRows.length}</span> 条提交</span></div>`;
+      <div class="stu-board-header"><span class="stu-live"><i></i>实时 · <span id="stu-total">${this.headCount()}</span> ${b.type === 'rollcall' ? '人已报名' : '条提交'}</span></div>`;
     if (b.type === 'material' && meta.material) {
       const m = meta.material;
       h += `<div class="q-desc" style="margin-top:6px">材料：${esc(m.title)}</div>`;
@@ -251,10 +309,13 @@ const S = {
     h += '<div id="stu-units">';
     units.forEach((u, i) => {
       const isNote = u.subType === 'note';
-      const count = subsOf(this.boardRows, u).length;
-      let tag = isNote ? '自由白板' : (b.type === 'material' ? '配套问题 ' + (i + 1) + ' · ' + TYPES[u.subType].name : TYPES[b.type].name);
+      const isRoster = u.subType === 'signin';
+      const count = this.unitCount(u);
+      let tag = isNote ? '自由白板'
+        : (isRoster ? '报名名册'
+          : (b.type === 'material' ? '配套问题 ' + (i + 1) + ' · ' + TYPES[u.subType].name : TYPES[b.type].name));
       h += `<div class="unit-card" id="unit-${i}">
-        <div class="unit-no" id="unit-no-${i}">${esc(tag)} · ${count} 条</div>
+        <div class="unit-no" id="unit-no-${i}">${esc(tag)} · ${count} ${isRoster ? '人' : '条'}</div>
         ${u.title ? '<h3>' + esc(u.title) + '</h3>' : ''}
         <div class="unit-res" id="unit-res-${i}"></div>
       </div>`;
@@ -295,15 +356,16 @@ const S = {
       else if (u.subType === 'choice') renderChoice(container, u, unitRows);
       else if (u.subType === 'blank') renderBlank(container, u, unitRows);
       else if (u.subType === 'cloud') renderCloud(container, u, unitRows);
+      else if (u.subType === 'signin') renderRoster(container, u, unitRows);
     });
     // 更新计数
-    document.getElementById('stu-total').textContent = this.boardRows.length;
+    document.getElementById('stu-total').textContent = this.headCount();
     units.forEach((u, i) => {
       const no = document.getElementById('unit-no-' + i);
       if (!no) return;
-      const unitRows = subsOf(this.boardRows, u);
+      const isRoster = u.subType === 'signin';
       const prefix = no.textContent.split('·')[0];
-      no.textContent = prefix + '· ' + unitRows.length + ' 条';
+      no.textContent = prefix + '· ' + this.unitCount(u) + ' ' + (isRoster ? '人' : '条');
     });
   },
   /* 输入区：根据互动类型渲染不同的输入控件 */
@@ -338,6 +400,19 @@ const S = {
       this.selShape = this.selShape || 'square';
       this.bindImgPicker();
       setTimeout(() => { const t = document.getElementById('stu-note-text'); if (t) t.focus(); }, 80);
+    } else if (b.type === 'rollcall') {
+      // 点名：输入区就是「报名 / 已报名」两种状态，只在状态真的翻转时才重建，
+      // 免得 3s 轮询把学生正在输入的名字清掉（同便签墙的坑，见 AGENTS.md 约束 5）
+      if (this.isSubmitted(0)) {
+        area.innerHTML = `<div class="stu-submitted">✅ 已报名：<b>${esc(this.name || '我')}</b> · 等老师点名
+          <div><button class="btn btn-ghost btn-sm" style="margin-top:9px" onclick="S.changeName()">改一下名字</button></div></div>`;
+      } else {
+        area.innerHTML = `<div class="field"><label>你的名字</label>
+            <input id="stu-sign-name" maxlength="12" placeholder="真名或常用称呼都行" value="${esc(this.name || localStorage.getItem('ty_name') || '')}"></div>
+          <button class="btn btn-primary" style="width:100%;padding:13px" onclick="S.signIn(true)">✓ 提交，加入点名池</button>
+          <div class="side-note" style="text-align:center;margin-top:8px">提交后名字会出现在老师的名册里，随时可以改</div>`;
+        setTimeout(() => { const i = document.getElementById('stu-sign-name'); if (i) i.focus(); }, 80);
+      }
     } else if (b.type === 'choice') {
       const u = units[0];
       if (this.isSubmitted(0)) {
@@ -547,6 +622,11 @@ const S = {
         } else {
           this.bindInput();
         }
+      }
+      if (this.board.type === 'rollcall') {
+        // 只在「报名 / 已报名」真的翻转时才重建输入区，否则会清掉正在输入的名字
+        const area = document.getElementById('stu-input-area');
+        if (area && (!!area.querySelector('.stu-submitted')) !== this.isSubmitted(0)) this.bindInput();
       }
       if (this.board.type === 'choice' || this.board.type === 'blank' || this.board.type === 'cloud') {
         if (this.isSubmitted(0)) {

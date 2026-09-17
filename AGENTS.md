@@ -94,11 +94,11 @@ git grep --cached -I -e "<envId>" -e "<accessKey>"
 
 | 文件 | 职责 | 改它的风险 |
 |---|---|---|
-| `index.html` | 老师端全部逻辑（课程、发起互动、大屏、下发弹窗） | 高，改前先读懂 `renderBoardBody` |
+| `index.html` | 老师端全部逻辑（课程、发起互动、大屏、下发弹窗、课程封面 `App.pickCover` / `App.clearCover`、互动拖动排序 `App.bindActDrag` / `App.startActDrag` / `App.reorderAct`） | 高，改前先读懂 `renderBoardBody` |
 | `student.html` | 学生端（输码进入、共享看板、提交、便签带图 `S.imgData` / `bindImgPicker` / `setImgPreview` / `compressImage`） | 中，动图片状态前先读约束 5 |
 | `js/common.js` | 公共渲染器：无限画布、便签渲染、一键整理、各类型结果渲染 | **最高**，前后端共用 |
-| `js/db.js` | 数据层入口：环境探测 + 两模式共用工具 | 高（见约束 2） |
-| `js/store.local.js` | 本地模式实现（localStorage） | 高（见约束 2） |
+| `js/db.js` | 数据层入口：环境探测 + 两模式共用工具（含拖动排序落库 `reorderBoards`） | 高（见约束 2） |
+| `js/store.local.js` | 本地模式实现（localStorage，含 `reorderBoards`） | 高（见约束 2） |
 | `css/style.css` | 全部样式（暖纸感 + 黑描边 + 橙点缀） | 低，但改完必须强刷 |
 | `config.js` | 提交到仓库的空模板 | 绝不要写真实值 |
 | `cloudbase/migrations/` | 建表 SQL + RLS 策略 | 改前确认权限模型 |
@@ -127,6 +127,17 @@ python3 -m http.server 8921 --bind 127.0.0.1
 - **样式类 bug**：在探针页里用**内联样式现场还原旧声明**搭对照组，
   比对测量数值（高度、`scrollWidth` vs `clientWidth`），避免"改了但其实没生效"。
 - **改完 `css/style.css` 必须提醒用户强制刷新**（`⌘ + Shift + R`），缓存极顽固。
+- **用 `agent-browser` 验证时，URL 必须带缓存参数**（如 `index.html?v=7#c=xxx`）：
+  它默认命中磁盘缓存，改了文件但不带参数会读到旧页面，**会误判成"改了没生效"**。
+- 同理，`agent-browser` 的 daemon 重启（命令被 SIGTERM 时）会**清空 localStorage**，
+  表现为探针种子数据莫名消失 —— 先重新种一遍，别急着怀疑数据层。
+- 拖拽 / 手势类改动用**真实鼠标事件**验证，不要只派发合成事件：
+  ```bash
+  agent-browser mouse move <x> <y> && agent-browser mouse down \
+    && agent-browser mouse move <x> <y2> && agent-browser mouse up
+  ```
+  坐标用 `getBoundingClientRect()` 现场算；页面上有「删除」按钮时**别按估算坐标点**，
+  否则会弹出删除确认框把后续命令全卡住（误触发过，用 `dialog dismiss` 收场）。
 
 ---
 
@@ -158,6 +169,18 @@ python3 -m http.server 8921 --bind 127.0.0.1
   两端共用渲染：`common.js` 里 `data.img → .note-mini .note-img`，元数据统一是
   `submissions.data.img`（dataURL 字符串）。**只图无字也允许提交。**
   压缩参数：等比 720px 内 + `toDataURL('image/jpeg', 0.72)`，PNG 透明底先填白。
+- **课程封面可自定义**：课程卡片 hover 出现「🖼 换封面 / ↩︎ 恢复默认」。
+  封面图前端压到 1100px 内 + JPEG 0.78（比便签图宽，因为是横幅），
+  存 `courses.cover`（dataURL 字符串，空串 = 用默认渐变 + emoji）。
+  取图统一走单例隐藏 input `App.coverInput()`（课程卡片会被重绘，input 不能挂卡片里）。
+- **互动顺序 = 拖动排序**（不是箭头按钮）：按住每行右侧的 `⠿` 手柄上下拖，
+  松手按新顺序重写 `boards.step`（1..n）。
+  实现细节：指针事件 + `setPointerCapture` + **6px 阈值**（防手抖误触）+ 拖动中整行
+  `position:fixed` 跟手 + 按中点 `insertBefore` 实时重排；落库走
+  `TY.db.reorderBoards(courseId, orderedIds)`（本地/云端同签名）。
+  按下手柄不拖动时，handle 上的 click 会被 `stopPropagation` 吃掉，**不会误进互动**。
+- **随机点名**：`boards.type = 'rollcall'`，学生扫码填名字 → 写一条
+  `submissions.type='signin'`（复用 submissions，不新增表）；老师端可随机抽人 / 随机分组。
 
 **悬而未决**：
 

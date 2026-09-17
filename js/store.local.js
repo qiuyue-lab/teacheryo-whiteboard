@@ -192,6 +192,26 @@
     save(s);
     return true;
   }
+  /* 拖动排序：按给定顺序重写 step（1..n）。
+   * ids 里没覆盖到的本课程互动会接到末尾，绝不会因为漏传而丢数据。 */
+  async function reorderBoards(courseId, orderedIds) {
+    var s = all();
+    var list = s.boards
+      .filter(function (b) { return b.course_id === courseId; })
+      .sort(function (a, b) { return (a.step || 0) - (b.step || 0); });
+    var mine = {};
+    list.forEach(function (b) { mine[b.id] = true; });
+    var ids = (orderedIds || []).filter(function (id) { return mine[id]; });
+    var seen = {};
+    ids.forEach(function (id) { seen[id] = true; });
+    list.forEach(function (b) { if (!seen[b.id]) ids.push(b.id); });
+    ids.forEach(function (id, i) {
+      var b = s.boards[indexOfId(s.boards, id)];
+      if (b && b.course_id === courseId) b.step = i + 1;
+    });
+    save(s);
+    return true;
+  }
   async function deleteBoard(id) {
     var s = all();
     s.boards = s.boards.filter(function (b) { return b.id !== id; });
@@ -283,6 +303,7 @@
     archiveBoard: archiveBoard,
     reopenBoard: reopenBoard,
     moveBoard: moveBoard,
+    reorderBoards: reorderBoards,
     deleteBoard: deleteBoard,
     listSubmissions: listSubmissions,
     submit: submit,

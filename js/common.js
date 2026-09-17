@@ -4,6 +4,7 @@
 window.TY = window.TY || {};
 
 const TYPES = {
+  rollcall: { name: '随机点名', icon: '🎯', tip: '学生先报名，再随机点人 / 分组', c: '#6D28D9' },
   notes:    { name: '便签墙', icon: '🟨', tip: '自由表达，贴出你的想法', c: '#B45309' },
   choice:   { name: '选择题', icon: '🗳️', tip: '点选作答，大屏实时出图', c: '#0F766E' },
   blank:    { name: '填空题', icon: '✏️', tip: '开放式短回答', c: '#075985' },
@@ -75,6 +76,10 @@ function boardUnits(b) {
     });
     out.units = [{ kind: 'notes', qIdx: 0, title: '', subType: 'note', anchors }];
     out.meta = { note: true, anchors };
+  } else if (b.type === 'rollcall') {
+    // 随机点名：整场只有「一个名册单元」，学生报名进池，老师随时抽人 / 分组
+    out.units = [{ kind: 'roster', qIdx: 0, title: cfg.question || '', subType: 'signin' }];
+    out.meta = { roster: true };
   } else if (b.type === 'material') {
     const parts = cfg.parts || [];
     out.meta = { material: cfg.material || { kind: 'article', title: '材料', url: '', desc: '' } };
@@ -141,6 +146,55 @@ function renderCloud(holder, unit, rows) {
     box.appendChild(s);
   });
   holder.appendChild(box);
+}
+/* ---------- 随机点名 · 名册 ----------
+ * 名单来源就是普通的 submissions 行：type='signin'、author=名字、data.name=名字。
+ * 刻意不新增表、不新增 TY.db.* 接口 —— 复用已有的 listSubmissions / submit /
+ * removeSubmission，所以本地模式和云端模式都不用改数据层。
+ *
+ * 去重规则：**按名字去重**，同名的以最新那条为准。
+ * 为什么不用 uid 去重？本地模式下整台浏览器共用一个 uid（store.local.js 的
+ * currentUid 存在 localStorage 里），用 uid 去重会把「一台电脑演示多个学生」
+ * 全合并成一个人，功能在本地直接失效。课堂上「名字」本来就是点名的身份，
+ * 所以按名字去重；同名同学会被合并成一条，属于已知取舍（见 AGENTS.md）。
+ */
+function rosterItems(rows) {
+  const map = {};
+  const order = [];
+  (rows || []).slice().sort((a, b) => (a.created_at || 0) - (b.created_at || 0)).forEach((r) => {
+    if (!r || r.type !== 'signin') return;
+    const name = String((r.data && r.data.name) || r.author || '').replace(/\s+/g, ' ').trim();
+    if (!name) return;
+    if (!(name in map)) order.push(name);
+    map[name] = { id: r.id, uid: r.uid || '', name, created_at: r.created_at, sub: r };
+  });
+  return order.map((n) => map[n]);
+}
+function rosterNames(rows) { return rosterItems(rows).map((x) => x.name); }
+/* 名册渲染器：学生端 / 老师端 / 下发弹窗三处共用 */
+function renderRoster(holder, unit, rows, opts) {
+  opts = opts || {};
+  const items = rosterItems(rows);
+  holder.innerHTML = '';
+  if (!items.length) {
+    holder.innerHTML = '<div class="side-note" style="padding:18px 0;text-align:center">还没有人报名，等学生扫码填名字…</div>';
+    return;
+  }
+  const box = document.createElement('div');
+  box.className = 'rc-roster';
+  items.forEach((it) => {
+    const c = document.createElement('span');
+    c.className = 'rc-chip';
+    c.innerHTML = '<span class="rc-avatar">' + esc(it.name.slice(0, 1)) + '</span><span class="rc-nm">' + esc(it.name) + '</span>'
+      + (opts.canDel ? '<button type="button" class="rc-del" data-id="' + esc(it.id) + '" title="把这个人从名册里移除">✕</button>' : '');
+    box.appendChild(c);
+  });
+  holder.appendChild(box);
+  if (opts.canDel) {
+    box.querySelectorAll('.rc-del').forEach((b) => {
+      b.addEventListener('click', () => { if (opts.onDel) opts.onDel(b.dataset.id); });
+    });
+  }
 }
 function noteRot(seed) {
   // 确定性微旋转：基于种子（author+id）生成 -2.5 ~ +2.5 度的旋转

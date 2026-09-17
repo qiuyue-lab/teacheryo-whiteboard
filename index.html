@@ -62,7 +62,7 @@
       <div class="hero-text">
         <span class="hero-kicker">课堂互动设计</span>
         <h1>让每个人的想法，<br><em>一起贴上墙</em></h1>
-        <p>便签墙 · 选择题 · 填空题 · 词云 · 材料学习 —— 一键下发二维码，学生扫码即答，结果实时汇聚，按课程自动沉淀。</p>
+        <p>随机点名 · 便签墙 · 选择题 · 填空题 · 词云 · 材料学习 —— 一键下发二维码，学生扫码即答，结果实时汇聚，按课程自动沉淀。</p>
       </div>
     </div>
     <div class="sec-head">
@@ -86,6 +86,7 @@
       <div class="page-title" style="font-size:17px">这节课的流程</div>
       <button class="btn btn-primary btn-sm" onclick="App.openNewBoard()">🚀 发起课堂互动</button>
     </div>
+    <div class="act-hint" id="act-hint" style="display:none">按住每行右侧的 <b>⠿</b> 上下拖动，就能调整课堂顺序</div>
     <div id="act-list" class="act-list"></div>
   </div>
 </div>
@@ -197,10 +198,40 @@ function modeBadge() {
     : '<span class="ver">云端同步</span>';
 }
 
+/* 随机点名 / 随机分组用到的小工具（纯函数，无副作用） */
+function shuffleArr(arr) {
+  const a = (arr || []).slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const t = a[i]; a[i] = a[j]; a[j] = t;
+  }
+  return a;
+}
+/* 把名字平均分成 k 组：余数摊给前面的组，尽量均衡。
+ * 用它而不是「按 size 切块」，是为了不出现「1 人组」（切块法 7 人 3 人/组 → 3/3/1） */
+function splitIntoK(names, k) {
+  const n = (names || []).length;
+  if (!n) return [];
+  k = Math.max(1, Math.min(Math.round(k) || 1, n));
+  const base = Math.floor(n / k), rem = n % k;
+  const out = [];
+  let i = 0;
+  for (let g = 0; g < k; g++) {
+    const size = base + (g < rem ? 1 : 0);
+    out.push(names.slice(i, i + size));
+    i += size;
+  }
+  return out;
+}
+
 const App = {
   ctx: {},            // { course, boards, board }
   poll: null,
   boardRows: [],
+  /* 随机点名的「临时状态」（抽中的人、分组结果、正在抽的动画）
+   * ⚠️ 必须放在这里而不是 DOM 里：大屏每 2.5s 轮询重绘一次整块 body，
+   *    DOM 里的东西会被冲掉。见 AGENTS.md「随机点名子系统」。 */
+  rc: null,
 
   /* ---------- 基础 ---------- */
   show(id) {
@@ -257,8 +288,12 @@ const App = {
         el.innerHTML = `
           <button class="card-del" style="top:10px;left:10px" title="删除课程" onclick="event.stopPropagation();App.askDelCourse('${c.id}')">🗑</button>
           <div class="cc-cover" style="background:${COVERS[i % COVERS.length]}">
-            ${c.cover ? `<img src="${esc(c.cover)}">` : ''}
-            <span class="cc-emoji">${esc(c.emoji || '📘')}</span>
+            ${c.cover ? `<img src="${esc(c.cover)}" alt="课程封面">` : ''}
+            ${c.cover ? '' : `<span class="cc-emoji">${esc(c.emoji || '📘')}</span>`}
+            <div class="cc-edit">
+              <button title="上传 / 替换这张封面图" onclick="event.stopPropagation();App.pickCover('${c.id}')">🖼 换封面</button>
+              ${c.cover ? `<button class="ghost" title="恢复默认封面" onclick="event.stopPropagation();App.clearCover('${c.id}')">↩︎ 恢复默认</button>` : ''}
+            </div>
           </div>
           <div class="cc-body"><h3>${esc(c.name)}</h3><div class="cc-meta">创建于 ${fmtTime(c.created_at)}</div>
           <div class="cc-stats"><span>🎒 点击进入本课</span></div></div>`;
@@ -279,6 +314,34 @@ const App = {
     if (!confirm('确定删除这门课？\n\n课程下的所有互动和学生提交会一起删除，且无法恢复。')) return;
     try { await TY.db.deleteCourse(id); toast('课程已删除'); location.hash = ''; } catch (e) { toast('删除失败：' + e.message); }
   },
+  /* ---------- 课程封面 ---------- */
+  coverInput() {
+    let fi = document.getElementById('cover-input');
+    if (!fi) {
+      fi = document.createElement('input');
+      fi.type = 'file'; fi.accept = 'image/*'; fi.id = 'cover-input'; fi.hidden = true;
+      document.body.appendChild(fi);
+    }
+    return fi;
+  },
+  pickCover(cid) {
+    const fi = this.coverInput();
+    fi.onchange = (e) => {
+      const f = e.target.files && e.target.files[0];
+      e.target.value = '';   // 清空，允许连续选同一张图
+      if (!f) return;
+      toast('封面处理中…');
+      this.compressImage(f, { max: 1100, quality: 0.78 })   // 封面是横幅，压得比便签图宽一点
+        .then((d) => TY.db.updateCourse(cid, { cover: d }))
+        .then(() => { toast('封面已更新 🖼'); this.viewHome(); })
+        .catch((err) => toast('封面更新失败：' + (err && err.message || err)));
+    };
+    fi.click();
+  },
+  async clearCover(cid) {
+    try { await TY.db.updateCourse(cid, { cover: '' }); toast('已恢复默认封面'); this.viewHome(); }
+    catch (e) { toast('操作失败：' + e.message); }
+  },
 
   /* ============ 课程详情 ============ */
   async viewCourse(cid) {
@@ -294,13 +357,16 @@ const App = {
       document.getElementById('course-sub').textContent = `共 ${boards.length} 个互动 · ${live ? live + ' 个进行中' : '均已归档'} · 全部按顺序沉淀在本课`;
       document.getElementById('btn-del-course').style.display = boards.length ? 'inline-flex' : 'inline-flex';
       const list = document.getElementById('act-list');
+      const hint = document.getElementById('act-hint');
+      if (hint) hint.style.display = boards.length > 1 ? 'block' : 'none';
       if (!boards.length) { list.innerHTML = `<div class="empty"><span class="big">🎈</span>这节课还没有互动<br><br><button class="btn btn-primary" onclick="App.openNewBoard()">🚀 发起第 1 个课堂互动</button></div>`; return; }
       list.innerHTML = '';
       boards.forEach((b, i) => {
         const t = TYPES[b.type];
         const stat = this.statOf(b);
         const el = document.createElement('div'); el.className = 'act-row';
-        el.onclick = () => this.go(cid, b.id);
+        el.dataset.id = b.id;
+        el.onclick = () => { const wasDrag = this._actDragged; this._actDragged = false; if (wasDrag) return; this.go(cid, b.id); };
         el.innerHTML = `
           <span class="step-no">${i + 1}</span>
           <div class="act-row-inner">
@@ -314,16 +380,17 @@ const App = {
             <div class="ar-foot">${stat}</div>
           </div>
           <div class="ar-actions">
-            ${i > 0 ? `<button title="上移一步" onclick="event.stopPropagation();App.move('${cid}','${b.id}',-1)">↑</button>` : ''}
-            ${i < boards.length - 1 ? `<button title="下移一步" onclick="event.stopPropagation();App.move('${cid}','${b.id}',1)">↓</button>` : ''}
+            <button class="drag-handle" title="按住上下拖动，调整课堂顺序" aria-label="拖动调整顺序">⠿</button>
             <button class="del" title="删除" onclick="event.stopPropagation();App.delOneBoard('${cid}','${b.id}')">🗑</button>
           </div>`;
         list.appendChild(el);
       });
+      this.bindActDrag(cid);
     } catch (e) { document.getElementById('act-list').innerHTML = `<div class="empty">读取失败：${esc(e.message)}</div>`; }
   },
   summaryOf(b) {
     const cfg = b.config || {};
+    if (b.type === 'rollcall') return cfg.question || '学生先报名，再随机点名 / 随机分组';
     if (b.type === 'notes') { const a = noteAnchorLabels(cfg); return a.length ? '中心关键词：' + a.join(' / ') : '自由白板 · 随意贴'; }
     if (b.type === 'material') return `材料：${((cfg.material || {}).title || '') || ''} · ${(cfg.parts || []).length} 个配套问题`;
     return cfg.question || '';
@@ -331,8 +398,79 @@ const App = {
   statOf(b) {
     return '⏱ ' + fmtTime(b.created_at);
   },
-  async move(cid, bid, dir) {
-    try { await TY.db.moveBoard(bid, cid, dir); toast('顺序已调整'); this.viewCourse(cid); } catch (e) { toast('操作失败：' + e.message); }
+  /* ---------- 互动顺序：拖动排序（指针事件，鼠标 / 触屏都能用） ---------- */
+  bindActDrag(cid) {
+    const list = document.getElementById('act-list');
+    if (!list) return;
+    list.querySelectorAll('.act-row').forEach((row) => {
+      const handle = row.querySelector('.drag-handle');
+      if (!handle) return;
+      handle.addEventListener('pointerdown', (e) => this.startActDrag(e, row, list, cid));
+      // 手柄上松手不该被当成「点了这一行」进到互动里 —— 位移小于 6px 阈值时，
+      // 浏览器仍会补一个 click，所以要在这里吃掉它，否则「按一下手柄」会误进教室
+      handle.addEventListener('click', (e) => { e.stopPropagation(); e.preventDefault(); });
+    });
+  },
+  startActDrag(e, row, list, cid) {
+    if (e.button != null && e.button !== 0) return;   // 只响应鼠标主键
+    e.preventDefault();
+    e.stopPropagation();
+    const handle = e.currentTarget;
+    try { handle.setPointerCapture(e.pointerId); } catch (err) { /* 合成事件可能不支持，忽略 */ }
+    const startY = e.clientY;
+    const rect = row.getBoundingClientRect();
+    const grabOffset = e.clientY - rect.top;          // 按住的位置，拖动时保持不变
+    let dragging = false;
+
+    const onMove = (ev) => {
+      if (!dragging) {
+        if (Math.abs(ev.clientY - startY) < 6) return;   // 6px 阈值：防手抖误触
+        dragging = true;
+        row.classList.add('is-dragging');
+        row.style.width = rect.width + 'px';
+        row.style.height = rect.height + 'px';
+        row.style.left = rect.left + 'px';
+      }
+      row.style.top = (ev.clientY - grabOffset) + 'px';
+      // 实时重排：插到「指针越过的第一行」之前，越过分界线才换位
+      const others = Array.from(list.querySelectorAll('.act-row')).filter((x) => x !== row);
+      let placed = false;
+      for (const o of others) {
+        const r = o.getBoundingClientRect();
+        if (ev.clientY < r.top + r.height / 2) { list.insertBefore(row, o); placed = true; break; }
+      }
+      if (!placed) list.appendChild(row);
+    };
+
+    const finish = async () => {
+      document.removeEventListener('pointermove', onMove);
+      document.removeEventListener('pointerup', finish);
+      document.removeEventListener('pointercancel', finish);
+      try { handle.releasePointerCapture(e.pointerId); } catch (err) { /* 忽略 */ }
+      row.classList.remove('is-dragging');
+      row.removeAttribute('style');
+      if (!dragging) return;
+      // 拖完紧跟的那次 click 不能当成「进入互动」，用一个一次性标记吃掉它
+      this._actDragged = true;
+      clearTimeout(this._actDragTimer);
+      this._actDragTimer = setTimeout(() => { this._actDragged = false; }, 400);
+      const ids = Array.from(list.querySelectorAll('.act-row')).map((x) => x.dataset.id);
+      await this.reorderAct(cid, ids);
+    };
+    document.addEventListener('pointermove', onMove);
+    document.addEventListener('pointerup', finish);
+    document.addEventListener('pointercancel', finish);
+  },
+  async reorderAct(cid, ids) {
+    const before = (this.ctx.boards || []).map((b) => b.id);
+    if (ids.join(',') === before.join(',')) return;   // 顺序没变就不写库
+    try {
+      await TY.db.reorderBoards(cid, ids);
+      toast('顺序已调整 ✨');
+    } catch (e) {
+      toast('顺序保存失败：' + (e && e.message || e));
+    }
+    this.viewCourse(cid);   // 无论成败都按库里的真实顺序重绘，避免界面和实际不一致
   },
   delOneBoard(cid, bid) {
     if (!confirm('确定删除这个互动？所有学生提交会一起删除，且无法恢复。')) return;
@@ -356,7 +494,7 @@ const App = {
     this.hide('mb-step' + (step === 1 ? 2 : 1));
     if (step === 1) {
       const box = document.getElementById('mb-types'); box.innerHTML = '';
-      const keys = ['notes', 'choice', 'blank', 'cloud', 'material'];
+      const keys = ['rollcall', 'notes', 'choice', 'blank', 'cloud', 'material'];
       keys.forEach((k) => {
         const t = TYPES[k];
         const el = document.createElement('div'); el.className = 'type-card' + (k === this.newType ? ' on' : '');
@@ -379,7 +517,13 @@ const App = {
     const host = document.getElementById('b-config'); host.innerHTML = '';
     const T = TYPES[this.newType];
     const row = (label, html) => `<div class="field"><label>${label}</label>${html}</div>`;
-    if (this.newType === 'notes') {
+    if (this.newType === 'rollcall') {
+      host.innerHTML =
+        row('点名说明（可选，学生扫码后第一眼看到）', `<input id="cfg-q" placeholder="例如：先报个名，一会儿随机点同学分享">`) +
+        `<div class="side-note">学生扫码 → 填上自己的名字提交 → 名册实时汇聚到大屏。<br>
+        之后你可以随时「🎲 随机点名」抽一位，或「👥 随机分组」按组数 / 每组人数分队。<br>
+        <b>建议把这块大屏一直开着</b>：一节课随时都能抽，不用重新发起。</div>`;
+    } else if (this.newType === 'notes') {
       host.innerHTML =
         row('中心关键词（可选，每行一个，作为白板锚点）', `<textarea id="cfg-qs" placeholder="例如：&#10;AI 批改&#10;AI 出题&#10;AI 答疑&#10;留空 = 完全自由白板"></textarea>`);
     } else if (this.newType === 'choice') {
@@ -465,7 +609,10 @@ const App = {
     const t = this.newType;
     const v = (id) => (document.getElementById(id) || {}).value || '';
     try {
-      if (t === 'notes') {
+      if (t === 'rollcall') {
+        cfg.question = v('cfg-q').trim() || '先报个名，一会儿随机点同学';
+        if (!title) title = '随机点名 · 先报名';
+      } else if (t === 'notes') {
         const qs = txtRows(v('cfg-qs'));
         cfg.anchors = qs.map((label, i) => ({ id: 'a' + i, label }));
         if (!title) title = '便签墙 · ' + (qs[0] || '自由表达');
@@ -512,6 +659,7 @@ const App = {
     this.show('view-board');
     document.getElementById('tb-right').innerHTML = modeBadge();
     this.ctx = { cid, bid };
+    if (!this.rc || this.rc.bid !== bid) this.resetRC(bid);
     document.getElementById('back-course').style.display = 'inline-flex';
     try {
       const course = await TY.db.getCourse(cid);
@@ -547,6 +695,7 @@ const App = {
   async refreshBoard(silent) {
     if (!this.ctx.bid) return;
     if (silent && TY.noteUiBusy && TY.noteUiBusy()) return; // 正在拖拽/输入时不重绘，避免打断
+    if (silent && this.rc && this.rc.rolling) return;        // 点名动画进行中，别把舞台重绘掉
     try {
       const [board, rows] = await Promise.all([TY.db.getBoard(this.ctx.bid), TY.db.listSubmissions(this.ctx.bid)]);
       this.ctx.board = board; this.boardRows = rows;
@@ -557,9 +706,10 @@ const App = {
   renderBoardBody() {
     const b = this.ctx.board; if (!b) return;
     const { units, meta } = boardUnits(b);
-    const total = this.boardRows.length;
+    const isRosterBoard = (b.type === 'rollcall');
+    const total = isRosterBoard ? rosterItems(this.boardRows).length : this.boardRows.length;
     const body = document.getElementById('board-body');
-    body.innerHTML = `<div class="side-note" style="margin-bottom:14px;display:flex;gap:10px;align-items:center"><span class="live-dot"></span><b style="color:var(--ok)">实时 · ${total} 条提交</b></div>`;
+    body.innerHTML = `<div class="side-note" style="margin-bottom:14px;display:flex;gap:10px;align-items:center"><span class="live-dot"></span><b style="color:var(--ok)">实时 · ${total} ${isRosterBoard ? '人已报名' : '条提交'}</b></div>`;
     if (meta && meta.material) {
       const m = meta.material;
       const ic = m.kind === 'video' ? '🎬' : (m.kind === 'article' ? '📄' : '🔗');
@@ -571,11 +721,14 @@ const App = {
     units.forEach((u, i) => {
       const card = document.createElement('div'); card.className = 'unit-card';
       const rows = subsOf(this.boardRows, u);
+      const isRoster = (u.subType === 'signin');
+      const cnt = isRoster ? rosterItems(rows).length : rows.length;   // 点名看「人数」，同一人只算一次
       let tag = '题目';
-      if (b.type === 'notes') tag = '自由白板';
+      if (b.type === 'rollcall') tag = '报名名册';
+      else if (b.type === 'notes') tag = '自由白板';
       else if (b.type === 'material') tag = '配套问题 ' + (i + 1) + ' · ' + TYPES[u.subType === 'note' ? 'notes' : u.subType].name;
       else tag = TYPES[b.type].name;
-      card.innerHTML = `<div class="unit-no">${esc(tag)} · ${rows.length} 条</div>${u.title ? '<h3>' + esc(u.title) + '</h3>' : ''}`;
+      card.innerHTML = `<div class="unit-no">${esc(tag)} · ${cnt} ${isRoster ? '人报名' : '条'}</div>${u.title ? '<h3>' + esc(u.title) + '</h3>' : ''}`;
       const res = document.createElement('div'); res.className = 'unit-res';
       if (u.subType === 'note') {
         const active = b.status === 'active';
@@ -628,11 +781,181 @@ const App = {
       } else if (u.subType === 'choice') renderChoice(res, u, rows);
       else if (u.subType === 'blank') renderBlank(res, u, rows);
       else if (u.subType === 'cloud') renderCloud(res, u, rows);
+      else if (u.subType === 'signin') {
+        // 名册本身（可移除写错的人）—— 渲染完再挂面板，避免被渲染器清掉
+        renderRoster(res, u, rows, { canDel: true, onDel: (id) => this.removeSignin(id) });
+      }
       card.appendChild(res);
+      if (isRoster) card.appendChild(this.buildRollCallPanel(rows));
       body.appendChild(card);
     });
     if (!units.length) body.innerHTML += '<div class="empty">这个互动还没有题目</div>';
   },
+  /* ---------- 随机点名 / 随机分组 ----------
+   * 名册来源：submissions 里 type='signin' 的行（学生扫码报名时写入），
+   * 用 rosterItems() 去重（按名字，理由见 common.js 里那段注释）——
+   * 刻意不新增表、不新增 TY.db.* 接口，所以本地模式和云端模式都不用动数据层。
+   *
+   * ⚠️ 抽中的人 / 分组结果只存在 this.rc，绝不能只写在 DOM 里：
+   *    大屏每 2.5s 轮询重绘一次 renderBoardBody()，DOM 里的东西会被整块换掉，
+   *    表现为「刚抽出来的人 3 秒后自己消失，且不报任何错」。
+   *    正确做法 = 状态存 this.rc + 重绘时从状态幂等还原（见 AGENTS.md 约束 4）。
+   */
+  resetRC(bid) {
+    this.rc = {
+      bid: bid || '',
+      picked: [],          // 已抽到的人（勾了「抽过的不再抽」时用来排除）
+      current: '',         // 当前抽中的人
+      rolling: false,      // 抽名动画进行中（轮询要让路）
+      groups: null,        // 分组结果 [[名字…], …]
+      groupMode: 'count',  // count = 按组数；size = 按每组人数
+      groupN: 4,
+      noRepeat: true
+    };
+  },
+  buildRollCallPanel(rows) {
+    const rc = this.rc;
+    const items = rosterItems(rows);
+    const total = items.length;
+    const remain = rc.noRepeat ? Math.max(0, total - rc.picked.length) : total;
+    const wrap = document.createElement('div');
+    wrap.className = 'rc-panel';
+
+    const bar = document.createElement('div');
+    bar.className = 'rc-bar';
+    bar.innerHTML =
+      '<button type="button" class="btn btn-primary btn-sm" data-rc="pick">🎲 随机点名</button>'
+      + '<label class="rc-check" title="勾上后，抽过的人不会在下一轮里被重复抽到"><input type="checkbox" data-rc="norepeat"' + (rc.noRepeat ? ' checked' : '') + '><span>抽过的不再抽</span></label>'
+      + '<span class="rc-remain">' + (total ? ('可抽 ' + remain + ' / ' + total + ' 人') : '还没有人报名') + '</span>'
+      + '<button type="button" class="btn btn-ghost btn-sm" data-rc="reset" title="清空已抽记录，重新开始一轮">↺ 重置</button>'
+      + '<span class="rc-split"></span>'
+      + '<span class="rc-hint">随机分组</span>'
+      + '<select class="rc-sel" data-rc="mode">'
+      +   '<option value="count"' + (rc.groupMode === 'count' ? ' selected' : '') + '>按组数</option>'
+      +   '<option value="size"' + (rc.groupMode === 'size' ? ' selected' : '') + '>按每组人数</option>'
+      + '</select>'
+      + '<input class="rc-num" type="number" min="2" max="12" step="1" value="' + rc.groupN + '" data-rc="n" title="组数 / 每组人数">'
+      + '<button type="button" class="btn btn-ghost btn-sm" data-rc="group">👥 分组</button>'
+      + (rc.groups ? '<button type="button" class="btn btn-ghost btn-sm" data-rc="copygroup">📋 复制分组</button>' : '');
+    wrap.appendChild(bar);
+
+    const stage = document.createElement('div');
+    stage.className = 'rc-stage';
+    stage.id = 'rc-stage';
+    stage.innerHTML = this.rcStageHTML(total, (rows || []).length);   // 从状态还原，不是从上一轮 DOM 抄
+    wrap.appendChild(stage);
+
+    const gbox = document.createElement('div');
+    gbox.className = 'rc-groups';
+    gbox.innerHTML = this.rcGroupsHTML();
+    wrap.appendChild(gbox);
+
+    const q = (k) => wrap.querySelector('[data-rc="' + k + '"]');
+    q('pick').onclick = () => this.rollCall(items);
+    q('reset').onclick = () => {
+      rc.picked = []; rc.current = ''; rc.rolling = false;
+      this.renderBoardBody(); toast('已重置，可以重新抽一轮');
+    };
+    q('norepeat').onchange = (e) => { rc.noRepeat = e.target.checked; this.renderBoardBody(); };
+    q('mode').onchange = (e) => { rc.groupMode = e.target.value; };
+    q('n').onchange = (e) => { rc.groupN = clampNum(parseInt(e.target.value, 10) || 4, 2, 12); e.target.value = rc.groupN; };
+    q('group').onclick = () => this.makeGroups(items);
+    const cg = q('copygroup');
+    if (cg) cg.onclick = () => this.copyGroups();
+    return wrap;
+  },
+  rcStageHTML(total, raw) {
+    const rc = this.rc;
+    if (rc.rolling) {
+      return '<div class="rc-display is-rolling"><div class="rc-lbl">🎲 抽选中…</div><div class="rc-name">…</div></div>';
+    }
+    if (rc.current) {
+      const foot = (rc.noRepeat && total) ? ('已抽 ' + rc.picked.length + ' / ' + total + ' 人') : '';
+      return '<div class="rc-display is-final"><div class="rc-lbl">🎉 请你来分享</div>'
+        + '<div class="rc-name">' + esc(rc.current) + '</div>'
+        + (foot ? '<div class="rc-foot">' + foot + '</div>' : '') + '</div>';
+    }
+    // 同名会被合并成一条，这里把原始提交数露出来，免得老师以为有人没报名上
+    const dup = (raw && raw > total) ? ('（' + raw + ' 条报名，同名已合并）') : '';
+    return '<div class="rc-display is-idle"><span class="rc-big">🎯</span><div class="rc-idle-txt"><b>'
+      + (total ? '名册就绪，点「随机点名」抽一位' : '等学生扫码报名') + '</b>'
+      + '<div class="rc-sub">' + (total ? ('共 ' + total + ' 人已报名' + dup) : '学生扫码 → 填上名字提交 → 名字会出现在这里') + '</div></div></div>';
+  },
+  rcGroupsHTML() {
+    const gs = this.rc.groups;
+    if (!gs || !gs.length) return '';
+    const people = gs.reduce((n, g) => n + g.length, 0);
+    return '<div class="rc-glist-head">分组结果<span>' + gs.length + ' 组 · ' + people + ' 人</span></div>'
+      + '<div class="rc-glist">' + gs.map((g, i) =>
+        '<div class="rc-group"><div class="rc-gtitle">第 ' + (i + 1) + ' 组<span>' + g.length + ' 人</span></div>'
+        + '<div class="rc-gmembers">' + g.map((n) => '<span class="rc-gm">' + esc(n) + '</span>').join('') + '</div></div>'
+      ).join('') + '</div>';
+  },
+  rollCall(items) {
+    const rc = this.rc;
+    if (rc.rolling) return;
+    const all = (items || []).map((x) => x.name);
+    if (!all.length) { toast('还没有人报名，先把二维码发下去'); return; }
+    const pool = rc.noRepeat ? all.filter((n) => rc.picked.indexOf(n) < 0) : all.slice();
+    if (!pool.length) { toast('全班都抽过一轮了，点「↺ 重置」再来一轮'); return; }
+    const finalName = pool[Math.floor(Math.random() * pool.length)];
+    rc.rolling = true;
+    this.renderBoardBody();                       // 切到「抽选中」舞台
+    const t0 = Date.now(), DUR = 1700;
+    const step = () => {
+      const el = document.getElementById('rc-stage');
+      if (!el || !el.isConnected) { rc.rolling = false; return; }   // 舞台被换掉就安静收工，不动状态
+      const nameEl = el.querySelector('.rc-name');
+      const p = Math.min(1, (Date.now() - t0) / DUR);
+      if (nameEl) nameEl.textContent = pool[Math.floor(Math.random() * pool.length)];
+      if (p >= 1) {
+        rc.rolling = false;
+        rc.current = finalName;
+        if (rc.picked.indexOf(finalName) < 0) rc.picked.push(finalName);
+        this.renderBoardBody();                   // 结果从状态重画，不依赖动画残留的 DOM
+        toast('🎯 ' + finalName);
+        return;
+      }
+      setTimeout(step, 45 + 300 * p * p);         // 越往后越慢，有「抽奖」的减速感
+    };
+    step();
+  },
+  makeGroups(items) {
+    const rc = this.rc;
+    const names = shuffleArr((items || []).map((x) => x.name));
+    if (names.length < 2) { toast('至少要有 2 个人才能分组'); return; }
+    const n = clampNum(parseInt(rc.groupN, 10) || 4, 2, 12);
+    // 「按组数」→ 组数就是 n；「按每组人数」→ 反推组数（向上取整，所以每组人数是「大约」）
+    const k = (rc.groupMode === 'size') ? Math.ceil(names.length / n) : n;
+    const groups = splitIntoK(names, k);
+    rc.groups = groups;
+    this.renderBoardBody();
+    toast('已随机分成 ' + groups.length + ' 组 ✨');
+  },
+  copyGroups() {
+    const gs = this.rc.groups;
+    if (!gs || !gs.length) return;
+    const txt = gs.map((g, i) => '第 ' + (i + 1) + ' 组（' + g.length + ' 人）：' + g.join('、')).join('\n');
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(txt).then(() => toast('分组结果已复制'), () => prompt('分组结果', txt));
+    } else prompt('分组结果', txt);
+  },
+  async removeSignin(id) {
+    const sub = (this.boardRows || []).find((s) => s.id === id);
+    if (!sub) return;
+    const nm = (sub.data && sub.data.name) || sub.author || '';
+    if (!confirm('把「' + nm + '」从名册里移除？')) return;
+    try {
+      // 删掉这一条即可 —— 名册按「名字」去重，删完这个名字就彻底不见了，
+      // 不会像按 uid 去重那样「删掉最新的就回退成旧名字」
+      await TY.db.removeSubmission(sub.id);
+      this.rc.picked = this.rc.picked.filter((x) => x !== nm);
+      if (this.rc.current === nm) this.rc.current = '';
+      await this.refreshBoard(true);
+      toast('已移除「' + nm + '」');
+    } catch (e) { toast('移除失败：' + e.message); }
+  },
+
   /* ---------- 便签白板：一键整理 / 锚点预设 / 老师参与 ---------- */
   noteRows() { return (this.boardRows || []).filter((r) => r.type === 'note'); },
   async arrangeNotes(unit, mode) {
@@ -737,8 +1060,11 @@ const App = {
     };
     return wrap;
   },
-  /* 便签图片：等比压到 720px 内 + JPEG 0.72，避免把大图塞进数据库 */
-  compressImage(file) {
+  /* 图片压缩：等比压到 max 内 + JPEG quality，避免把大图塞进数据库
+   * opts 可选：{ max: 最长边像素, quality: 0~1 }，默认 720 / 0.72（便签图用） */
+  compressImage(file, opts) {
+    const max = (opts && opts.max) || 720;
+    const quality = (opts && typeof opts.quality === 'number') ? opts.quality : 0.72;
     return new Promise((resolve, reject) => {
       const fr = new FileReader();
       fr.onerror = () => reject(new Error('图片读取失败'));
@@ -746,7 +1072,6 @@ const App = {
         const im = new Image();
         im.onerror = () => reject(new Error('图片解析失败'));
         im.onload = () => {
-          const max = 720;
           let w = im.width || max, h = im.height || max;
           if (w > max) { h = Math.round(h * max / w); w = max; }
           if (h > max) { w = Math.round(w * max / h); h = max; }
@@ -755,7 +1080,7 @@ const App = {
           const cx = cv.getContext('2d');
           cx.fillStyle = '#fff'; cx.fillRect(0, 0, w, h);   // PNG 透明底转白，免得变黑块
           cx.drawImage(im, 0, 0, w, h);
-          try { resolve(cv.toDataURL('image/jpeg', 0.72)); }
+          try { resolve(cv.toDataURL('image/jpeg', quality)); }
           catch (err) { resolve(fr.result); }
         };
         im.src = fr.result;
@@ -815,6 +1140,7 @@ const App = {
       else if (u.subType === 'choice') { renderChoice(block, u, rows); wrap.appendChild(block); }
       else if (u.subType === 'blank') { renderBlank(block, u, rows); wrap.appendChild(block); }
       else if (u.subType === 'cloud') { renderCloud(block, u, rows); wrap.appendChild(block); }
+      else if (u.subType === 'signin') { renderRoster(block, u, rows); wrap.appendChild(block); }
       box.appendChild(wrap);
     });
     if (!units.length) box.innerHTML += '<div class="side-note">暂无题目</div>';
@@ -836,6 +1162,15 @@ const App = {
       out += `\n◆ ${u.title}\n`;
       if (u.subType === 'choice') u.options.forEach((o, j) => { const cn = rows.filter((r) => Array.isArray(r.data.sel) && r.data.sel.includes(j)).length; out += `  ${String.fromCharCode(65 + j)}. ${o} — ${cn} 票\n`; });
       else if (u.subType === 'blank') rows.forEach((r) => { out += `  ${r.author}：${r.data.text || ''}\n`; });
+      else if (u.subType === 'signin') {
+        const items = rosterItems(rows);
+        out += `  报名 ${items.length} 人\n`;
+        items.forEach((it, k) => { out += `  ${k + 1}. ${it.name}（${fmtTime(it.created_at)}）\n`; });
+        if (this.rc && this.rc.current) out += `\n  本次点名抽中：${this.rc.current}\n`;
+        if (this.rc && this.rc.groups) {
+          this.rc.groups.forEach((g, gi) => { out += `  第 ${gi + 1} 组（${g.length} 人）：${g.join('、')}\n`; });
+        }
+      }
       else if (u.subType === 'cloud') { const f = {}; rows.forEach((r) => { const k = String(r.data.text || '').trim(); if (k) f[k] = (f[k] || 0) + 1; }); Object.entries(f).sort((a, b2) => b2[1] - a[1]).forEach(([w, cn]) => { out += `  ${w} × ${cn}\n`; }); }
       else rows.forEach((r) => { out += `  [👍${r.likes || 0}] ${r.author}：${r.data.text || ''}\n`; });
     });

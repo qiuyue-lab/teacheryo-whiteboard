@@ -201,6 +201,22 @@
     if (e1 || e2) throw e1 || e2;
     return true;
   }
+  /* 拖动排序：按给定顺序重写 step（1..n）。
+   * step 上没有唯一约束，所以可以并行写；ids 里漏掉的本课程互动会接到末尾。 */
+  async function reorderBoards(courseId, orderedIds) {
+    await ensure();
+    const boards = await listBoards(courseId);
+    const mine = new Set(boards.map((b) => b.id));
+    const ids = (orderedIds || []).filter((id) => mine.has(id));
+    const seen = new Set(ids);
+    boards.forEach((b) => { if (!seen.has(b.id)) ids.push(b.id); });
+    const res = await Promise.all(ids.map((id, i) =>
+      db().from(T().boards).update({ step: i + 1 }).eq('id', id)
+    ));
+    const bad = (res || []).find((r) => r && r.error);
+    if (bad) throw bad.error;
+    return true;
+  }
   async function deleteBoard(id) {
     await ensure();
     const { error } = await db().from(T().boards).delete().eq('id', id);
@@ -253,7 +269,7 @@
     db: {
       currentUid,
       listCourses, getCourse, createCourse, updateCourse, deleteCourse,
-      listBoards, getBoard, getBoardByCode, createBoard, updateBoard, archiveBoard, reopenBoard, moveBoard, deleteBoard,
+      listBoards, getBoard, getBoardByCode, createBoard, updateBoard, archiveBoard, reopenBoard, moveBoard, reorderBoards, deleteBoard,
       listSubmissions, submit, toggleLike, removeSubmission, updateSubmission
     }
   });
