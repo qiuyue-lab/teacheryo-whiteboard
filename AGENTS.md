@@ -340,6 +340,13 @@ base = floor(n / k),  rem = n % k        // 前 rem 组多 1 人
   走的是 `authenticated` 角色**（`boards` 的 UPDATE 实际能成功）。所以线上是可以正常改数据
   （改 step、改课程封面都能落库），但也意味着**别在线上拿真实课程做破坏性实验**。
   需要区分「只是读」和「要写」时，先想清楚这一条。
+- ⚠️ **`git status` 说 `ahead 1`、但 push 输出 `Everything up-to-date` —— 先别慌，多半是锁没删掉**：
+  跑在助手沙箱里时，`git` 在 `.git/` 下建/删锁文件会被拦（`Operation not permitted`），
+  于是留下 `index.lock` 或 `refs/remotes/origin/main.lock`，下一次 git 命令直接报
+  「an editor opened by 'git commit'」或者干脆不干活。**但远端往往已经收到提交了**。
+  判断顺序：`git ls-remote origin main`（看远端真实哈希）→ 一致就 `ls-remote` 收工，
+  不一致才需要动手；要动手就一条命令里清干净：
+  `rm -f .git/index.lock .git/refs/remotes/origin/main.lock; git fetch origin`。
 
 ---
 
