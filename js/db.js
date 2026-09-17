@@ -173,8 +173,11 @@
   }
   async function createBoard({ courseId, type, title, config }) {
     await ensure();
-    const { data: cnt } = await db().from(T().boards).select('id', { count: 'exact', head: true }).eq('course_id', courseId);
-    const step = (cnt && cnt.length ? cnt.length : 0) + 1;
+    /* step 取「当前最大 step + 1」，**不是**「条数 + 1」。
+     * 用条数算会撞车：课程里原有 [1,2,3]，删掉中间那个后剩 [1,3]，此时新建算出来是 3，
+     * 就和已有的 3 并列了 —— 并列之后基于 swap 的排序怎么点都换不动（线上踩过）。 */
+    const { data: rows } = await db().from(T().boards).select('step').eq('course_id', courseId);
+    const step = (rows || []).reduce((m, r) => Math.max(m, r.step || 0), 0) + 1;
     const code = await nextCode();
     const { data, error } = await db().from(T().boards)
       .insert({ course_id: courseId, type, title: title || '', status: 'active', config: config || {}, step, code })

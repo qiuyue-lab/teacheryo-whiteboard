@@ -153,9 +153,11 @@ python3 -m http.server 8921 --bind 127.0.0.1
   一页「风险提醒 · 页面访问提示」，要手动点「确定访问」才进应用。
   **命令行/脚本直接拉取不会看到这层拦截**（所以"用脚本验证线上内容"会漏掉它）。
   要彻底去掉只能绑定自有域名。上线给真实班级用之前，务必自己用浏览器点一遍确认。
-- ⚠️ **`anon` 角色只有 `courses` / `boards` 的 SELECT 权限**（见迁移 SQL 的 GRANT），
-  所以**别在线上造测试课程/互动来验收** —— 建得出来、删不掉，会留下垃圾数据。
-  线上验收请限于「读 + 加载检查」；写路径的完整验收放到本地模式（探针页）做。
+- ⚠️ **`anon` / `authenticated` 的权限边界（2026-09-17 实测更正）**：迁移 SQL 里写的是
+  `GRANT SELECT ON courses, boards TO anon`，但**线上实测「经 CloudBase JS SDK 匿名登录」的用户
+  走的是 `authenticated` 角色**（`boards` 的 UPDATE 实际能成功）。所以线上是可以正常改数据
+  （改 step、改课程封面都能落库），但也意味着**别在线上拿真实课程做破坏性实验**。
+  需要区分「只是读」和「要写」时，先想清楚这一条。
 
 ---
 
@@ -179,6 +181,13 @@ python3 -m http.server 8921 --bind 127.0.0.1
   `position:fixed` 跟手 + 按中点 `insertBefore` 实时重排；落库走
   `TY.db.reorderBoards(courseId, orderedIds)`（本地/云端同签名）。
   按下手柄不拖动时，handle 上的 click 会被 `stopPropagation` 吃掉，**不会误进互动**。
+  ⚠️ **旧箭头按钮「显示已调整、实际没变」的根因**（2026-09-17 在线上数据里查到）：
+  历史数据的 `boards.step` **大量并列**（线上「教育开放麦」是 `[1,1,1]`、「9.19杭州线下开放麦」是 `[1,1]`），
+  而旧的 `moveBoard` 是「相邻两条互换 step」——两个 1 互换当然还是 1，界面却照旧乐观提示"已调整"。
+  并列的成因是旧 `createBoard` 用 `条数 + 1` 算 step：`[1,2,3]` 删掉中间那条后剩 `[1,3]`，
+  再新建就算出 3，与已有的 3 撞车。
+  **两处都已修**：`createBoard` 改成 `max(step) + 1`（本地/云端两套），排序改成全量重写 `1..n`。
+  历史脏数据用 `reorderBoards(该课程当前展示顺序)` 幂等刷一遍即可（不改变视觉顺序，只把 step 排整齐）。
 - **随机点名**：`boards.type = 'rollcall'`，学生扫码填名字 → 写一条
   `submissions.type='signin'`（复用 submissions，不新增表）；老师端可随机抽人 / 随机分组。
 

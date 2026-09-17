@@ -153,11 +153,14 @@
   }
   async function createBoard(o) {
     var s = all();
-    var n = s.boards.filter(function (b) { return b.course_id === o.courseId; }).length;
+    /* step = 当前最大 step + 1（不是条数 + 1）：删过中间那条之后，
+     * 用条数算会跟已有 step 并列，并列之后 swap 式排序就再也调不动了。 */
+    var list = s.boards.filter(function (b) { return b.course_id === o.courseId; });
+    var step = list.reduce(function (m, b) { return Math.max(m, b.step || 0); }, 0) + 1;
     var row = {
       id: uuid(),
       course_id: o.courseId,
-      step: n + 1,
+      step: step,
       type: o.type,
       title: o.title || '',
       status: 'active',
