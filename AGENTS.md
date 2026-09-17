@@ -316,11 +316,25 @@ base = floor(n / k),  rem = n % k        // 前 rem 组多 1 人
   （凭据过期用本地 `tcb` CLI 兜底）
 - **GitHub Pages**：推 `main` 分支即自动部署到
   `https://qiuyue-lab.github.io/teacheryo-whiteboard/`
-- 部署后记得**把 `config.local.js` 一起上传**（它不在 Git 里，但运行时需要）
+- 托管里**没有** `config.local.js`（实测 2026-09-17 的文件清单）：线上是靠**填好版 `config.js`**
+  跑云端模式的。`config.local.js` 只是本地开发时避免改脏模板用的。
+- ⚠️ **绝对不要整目录上传**（这条踩过就会静默坏掉）：
+  仓库里的 `config.js` 是**空模板**（`envId: ''`，1598 字节），而**线上那份是填好的**
+  （`envId: 'teacheryo-d5g4wbd0sde42bcf6'` + Publishable Key，2092 字节）。
+  整目录覆盖会把线上打回**本地模式**：学生扫码后各存各的浏览器、大屏永远看不到别人的提交，
+  **而且不报错**，看起来一切正常。
+  正确做法：**只上传真正改过的文件**（用 `manageHosting` 的 `files` 参数逐项指定），
+  或先确认线上 `config.js` 的内容再决定覆盖范围。
+  - 怎么判断线上是云端模式：打开站点看右上角是否有「云端同步」角标、能否列出真实课程
+  - 怎么核对哪些文件真的旧了：`md5 -q <本地文件>` 与托管文件的 `ETag` 比对
+    （线上单文件上传的 ETag 就是 MD5）。2026-09-17 这次就是这样查出只有
+    `index.html` / `student.html` / `js/common.js` 三个文件需要传。
 - ⚠️ **默认的 `*.tcloudbaseapp.com` 是腾讯云「测试域名」**：真实浏览器首次访问会先看到
   一页「风险提醒 · 页面访问提示」，要手动点「确定访问」才进应用。
   **命令行/脚本直接拉取不会看到这层拦截**（所以"用脚本验证线上内容"会漏掉它）。
   要彻底去掉只能绑定自有域名。上线给真实班级用之前，务必自己用浏览器点一遍确认。
+  - 本次是用 agent-browser 真点了一遍：`find text "确定访问" click` 之后才进到应用，
+    确认右上角是「云端同步」、能列出真实课程。
 - ⚠️ **`anon` / `authenticated` 的权限边界（2026-09-17 实测更正）**：迁移 SQL 里写的是
   `GRANT SELECT ON courses, boards TO anon`，但**线上实测「经 CloudBase JS SDK 匿名登录」的用户
   走的是 `authenticated` 角色**（`boards` 的 UPDATE 实际能成功）。所以线上是可以正常改数据
@@ -396,6 +410,16 @@ base = floor(n / k),  rem = n % k        // 前 rem 组多 1 人
   文案变「☑️ 多选」且结果条里立刻出现「（多选）」；学生端单选时
   `head = 「选一个你的答案」`、无 `multi-hint`、连点两项只留后点的那项（`choiceSel=[1]`）；
   多选互动回归正常（可勾两项、再点取消）。
+- **已上线（2026-09-17，提交 `f66d47e`）**：推到 GitHub 后 Pages 自动构建完成
+  （`qiuyue-lab.github.io/teacheryo-whiteboard/`，`status: built`）；CloudBase 静态托管用
+  `manageHosting(upload, files=[...])` **只传了改过的 3 个文件**（`index.html` / `student.html` /
+  `js/common.js`），线上 md5 与本地逐一相符，`config.js` 未被覆盖。
+  线上实测：站点为「云端同步」模式、能列出真实课程（`0917数字分身工作坊` 等），
+  学生端 `S.lockHTML` / `S.jumpToResults` 都在、无控制台报错。
+  ⚠️ 线上**三个选择题目前都是 `multi: true`**（都是这个 bug 建出来的）：
+  `0917数字分身工作坊/身份选择`、`教育开放麦/你觉得ai是人还是工具？`、
+  `【AI通识课培训】/选择·你想做html还是应用？` —— 想改单选的老师点一下大屏上的「🔘 单选」即可
+  （**没敢替老师改，原意不明**）。
 
 **悬而未决**：
 
