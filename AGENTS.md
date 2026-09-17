@@ -88,15 +88,82 @@ git grep --cached -I -e "<envId>" -e "<accessKey>"
 `vendor/cloudbase.full.js` → `config.js` → `config.local.js`
 → `js/store.local.js` → `js/common.js` → `js/db.js`
 
+### 8. 随机点名：抽中的人 / 分组结果只能存在 `App.rc` 上
+
+**任何"当场算出来的结果"都必须先落到 JS 状态对象，再由渲染函数从状态重画。**
+
+`App.rc` = `{ bid, picked, current, rolling, groups, groupMode, groupN, noRepeat }`。
+`rcStageHTML()` / `rcGroupsHTML()` 每轮都从它**幂等重画**，绝不从上一轮 DOM 里抄。
+
+为什么（这是本文件里最容易被忘记的一条）：
+`renderBoardBody()` 每 2.5 秒被整块重建一次（`body.innerHTML = ...`），
+**只写进 DOM 的东西一定会被冲掉**，而且不报任何错 —— 表现就是
+「刚抽出来的人 3 秒后自己消失 / 分组结果闪一下就没了」，老师会以为是玄学。
+
+两条配套刹车：
+
+- `refreshBoard(silent)` 开头有 `if (silent && this.rc && this.rc.rolling) return;`
+  —— **抽名动画（约 1.7s）期间让轮询直接跳过**，否则动画会被重绘打断。
+- `rollCall()` 的动画 step 里判断 `el && el.isConnected`，舞台被换掉就**安静收工、不动状态**，
+  不要抛错、也不要把 `rolling` 卡在 `true`（卡住会让轮询永远停摆）。
+
+同理，学生端「填名字」输入区也**只在"报名状态真的翻转"时才 `bindInput()`**，
+否则 3 秒轮询会清空学生正在打的名字（见约束 5 的学生端部分）。
+
+### 9. 学生端「交没交」决定哪块 UI 长什么样 —— 轮询只能补，不能覆盖
+
+学生端页面上有**两份看起来一样的东西**（结果区 + 作答区），所以"交没交"必须
+同时管住两边，否则学生在手机上看到上下各一份选项，不知道该点哪（2026-09-17 用户反馈）。
+
+- **选择题没交之前只留一份可点的选项**：`renderAllUnits()` 里
+  `locked = (u.subType === 'choice') && !this.isSubmitted(i)` → 结果区换成 `S.lockHTML()`，
+  卡片加 `.locked`（虚线、无底、隐藏计数）。提交后自动解锁并画出结果。
+- **`S.editing`（改选）期间，轮询绝对不能重建输入区** —— 判据是
+  `refreshBoard()` 里那句 `if (this.isSubmitted(0) && !this.editing)`。
+  少了 `&& !this.editing`，学生正在重选的选择会被 3 秒轮询清掉。
+  （同约束 4 的"画面自己在动"，只是换成"选项自己变回去"。）
+- **提交后跳转**统一走 `S.jumpToResults(partIdx)`：`scrollIntoView` + `.flash` 高亮。
+  它只在提交成功那一刻调用，**不要放进轮询**，否则学生会一直被拽着滚。
+- 结果的「我选的那项」标记走 uid：`myRow(partIdx)` → `myPicked(partIdx)` →
+  `renderChoice(..., { mySel })` 打 `.mine` + `你的选择` 徽章。
+  老师端不传 `mySel`，所以大屏渲染与以前完全一致（common.js 的渲染器加了可选参数，
+  不要改成必填）。
+- 重新提交 = 先 `removeSubmission(myRow(0).id)` 再 `submit`，**不能只 submit**，
+  否则同一题会记两票（票数会凭空多出来）。这一句**故意不加 `if (editing)` 守卫**：
+  学生清了浏览器数据后本地「已提交」标记会丢，但库里的行还在，再交一次就会
+  让同一个人在大屏上出现两次（实测过：`ty_subbed_*` 被清掉再交，加守卫时 2 行 / 共 6 人，
+  去掉守卫后 1 行 / 共 5 人）。
+
+### 10. 从表单读值必须读 `.value` / `.checked`，**不能 `!!getElementById(id)`**
+
+```js
+// ❌ 元素对象永远 truthy → multi 恒为 true
+const multi = !!document.getElementById('cfg-multi');
+// ✅
+const multi = !!(document.getElementById('cfg-multi') || {}).checked;
+```
+
+这条是**真实事故**（2026-09-17 用户反馈「我没勾多选，结果里却写着（多选）」）：
+`createBoard()` 里写成 `!!document.getElementById('cfg-multi')`，于是**只要建选择题就恒存
+`config.multi = true`** —— 大屏每个选项都挂「（多选）」，学生端也放开了多选。
+**不勾 = 单选**，这是产品约定。
+
+- 同类写法在教师端多处出现（`v(id)` 取 `.value` 那套是对的，照着写）。
+- **已建的老互动救不回来**（库里恒 true，分不清老师本来想不想多选），所以大屏加了
+  「🔘 单选 / ☑️ 多选」按钮（`App.toggleMulti`）让老师一键改 —— **不要以为改了代码老数据就自动好了**。
+- 顺带确认过：学生端 `pickFromBoard` 本来就分单选/多选（单选替换、多选 toggle），
+  `vote-head` 文案与 `multi-hint` 也都按 `u.multi` 切换 —— **只有建互动那一处读错了**。
+- 改 `config.multi` 只动 `boards.config`，**不动任何已提交的数据**；学生端 2.5~3s 轮询内自动跟上。
+
 ---
 
 ## 文件职责
 
 | 文件 | 职责 | 改它的风险 |
 |---|---|---|
-| `index.html` | 老师端全部逻辑（课程、发起互动、大屏、下发弹窗、课程封面 `App.pickCover` / `App.clearCover`、互动拖动排序 `App.bindActDrag` / `App.startActDrag` / `App.reorderAct`） | 高，改前先读懂 `renderBoardBody` |
-| `student.html` | 学生端（输码进入、共享看板、提交、便签带图 `S.imgData` / `bindImgPicker` / `setImgPreview` / `compressImage`） | 中，动图片状态前先读约束 5 |
-| `js/common.js` | 公共渲染器：无限画布、便签渲染、一键整理、各类型结果渲染 | **最高**，前后端共用 |
+| `index.html` | 老师端全部逻辑（课程、发起互动、大屏、下发弹窗、课程封面 `App.pickCover` / `App.clearCover`、互动拖动排序 `App.bindActDrag` / `App.startActDrag` / `App.reorderAct`、随机点名 `App.rc` / `buildRollCallPanel` / `rollCall` / `makeGroups` / `removeSignin`、选择题单选/多选切换 `App.toggleMulti`） | 高，改前先读懂 `renderBoardBody` + 约束 8、`createBoard` 的表单读取 + 约束 10 |
+| `student.html` | 学生端（输码进入、共享看板、提交、便签带图 `S.imgData` / `bindImgPicker` / `setImgPreview` / `compressImage`、点名报名 `S.renderSignGate` / `S.signIn`） | 中，动图片状态前先读约束 5 |
+| `js/common.js` | 公共渲染器：无限画布、便签渲染、一键整理、各类型结果渲染、**点名名册 `rosterItems` / `signinName` / `renderRoster`** | **最高**，前后端共用 |
 | `js/db.js` | 数据层入口：环境探测 + 两模式共用工具（含拖动排序落库 `reorderBoards`） | 高（见约束 2） |
 | `js/store.local.js` | 本地模式实现（localStorage，含 `reorderBoards`） | 高（见约束 2） |
 | `css/style.css` | 全部样式（暖纸感 + 黑描边 + 橙点缀） | 低，但改完必须强刷 |
@@ -109,17 +176,104 @@ git grep --cached -I -e "<envId>" -e "<accessKey>"
 
 ---
 
-## 改动后怎么验证
+## 随机点名子系统（第 6 种互动类型）
 
-**起本地服务**（`python3 -m http.server` 在工具环境里会被当子进程杀掉，
-必须以后台方式常驻）：
+**一句话：名册就是一堆普通的 `submissions` 行，没有新表、没有新接口。**
 
-```bash
-cd <项目目录>
-python3 -m http.server 8921 --bind 127.0.0.1
+```
+老师发起「随机点名」互动 (boards.type = 'rollcall')
+  → 学生扫码 → 填名字提交 → submissions 里一条 type='signin' 行
+                            （author = 名字、data.name = 名字、part_idx = 0）
+  → 老师端大屏：common.js 的 renderRoster() 画出名册
+  → App.buildRollCallPanel() 提供「🎲 随机点名」和「👥 分组」两个动作
+  → 结果存在 App.rc，见约束 8
 ```
 
+数据层**一行都没改**：点名只用到既有的
+`listSubmissions` / `submit` / `removeSubmission` / `currentUid`，
+所以本地模式和云端模式自动都是对的（这正是"复用 submissions"的价值，
+绕开了约束 2「加接口必须两边都加」）。**不要为了点名去新建表或新加 `TY.db.*`。**
+
+### 两个容易踩的坑
+
+**① 名册按「名字」去重，不是按 uid。**
+`rosterItems()` / `signinName()`（都在 `js/common.js`）是唯一口径。
+
+本地模式里 `currentUid()` 存在 localStorage，**整台浏览器共用一个 uid** ——
+用 uid 去重会把「一台电脑演示多个学生」合并成一个人，本地直接失效。
+课堂上「名字」本来就是点名的身份，所以按名字去重；同名同学会被合并成一条。
+
+**② 移除名册里的人，要删掉「这个名字的全部行」。**
+`App.removeSignin(id)` 先按名字找出**所有** `type='signin'` 且同名 的行一起删，
+不能只删被点的那一条：同名同学用两台设备报名过、或改过名留下旧行时，
+只删一条会让这个名字**点掉又弹回来**（名册按名字去重，剩下那条会重新兜住它）。
+这个 bug 是探针跑出来的，实测「7 条报名点掉一个名字，库里只少了 1 条」。
+删完记得连带把 `rc.picked` / `rc.current` 里的同名清掉、`rc.groups = null`（名册变了分组作废）。
+
+### 分组算法
+
+`splitIntoK(names, k)`（`index.html` 顶部的纯函数）：
+
+```
+base = floor(n / k),  rem = n % k        // 前 rem 组多 1 人
+```
+
+**不要退回「按每组人数切块」**（`chunk(names, size)`）：
+切块法在 7 人 / 每组 3 人时得到 `3 / 3 / 1`，会凭空出现 1 人组。
+`splitIntoK` 保证任意情况下 max-min ≤ 1，且 `k` 会被收敛到 `1..n`（组数比人还多也不炸）。
+「按每组人数」模式是**反推组数**：`k = ceil(n / 每组人数)`，所以每组人数是「大约」。
+
+---
+
+## 改动后怎么验证
+
 **验证原则：不要凭推理说"改好了"。**
+
+### 探针页 + headless Chrome（推荐，已跑通）
+
+不要依赖后台常驻的 `python3 -m http.server` —— **在 AI 工具环境里它和任何
+`nohup ... &` 起的进程都会被回收**（表现为 `curl` 返回 502 / Node `fetch ECONNREFUSED`），
+上一轮排查点名功能时在这上面白等了十几分钟。
+
+**可靠做法：不要服务器、不要任何 npm 依赖，一条命令跑完。**
+
+1. **探针页**：把 `index.html` / `student.html` 原样拷出来，只做两处改动 ——
+   剥掉 `config.local.js` 那一行（保持 `envId` 留空 = 本地模式），
+   在 `</body>` 前注入自测脚本，结果写进 `window.__probeReport`。
+   这样测的是**真代码**，不是仿写的副本。
+2. **用 `file://` 打开**（配 `--allow-file-access-from-files`，localStorage 正常可用），
+   **`file://` 下不需要 http 服务器**。
+3. **Chrome 和驱动脚本必须在同一条命令里启动**（同一条 `Bash` 调用内
+   `Chrome &` → 等端口 → `node driver.js` → `kill`），否则 Chrome 会被回收。
+4. **必须带上这一串参数**，否则无头页的定时器被节流到几乎不跑，
+   表现为"页面卡住、`Runtime.evaluate` 超时"：
+
+   ```
+   --headless=new --disable-gpu --no-sandbox --allow-file-access-from-files
+   --disable-background-timer-throttling --disable-backgrounding-occluded-windows
+   --disable-renderer-backgrounding --disable-ipc-flooding-protection
+   --disable-hang-monitor --hide-scrollbars --window-size=1280,900
+   --disable-features=Translate,BackForwardCache,CalculateNativeWinOcclusion,MediaRouter
+   ```
+
+   （`--dump-dom` 在 Chrome 152 的新无头模式下会**挂住不退**，别用它抓报告；
+   用 CDP 的 `Runtime.evaluate` 轮询 `window.__probeReport`。）
+5. **探针脚本里必须把 `window.confirm` / `window.prompt` / `window.alert` 全部打桩**：
+   无头环境里 `navigator.clipboard` 会失败 → 代码回退到 `prompt()` →
+   **原生对话框会把渲染线程永久卡死**，现象是 CDP 的 `Runtime.evaluate` 从此超时。
+   （`App.exportText()` / `App.copyGroups()` / `App.copyCode()` 都走这条回退路径。）
+   驱动侧再加一道保险：监听 `Page.javascriptDialogOpening` 后自动
+   `Page.handleJavaScriptDialog({accept:false})`。
+6. **探针调用 `S.enterBoard()` 之前，先等页面的 `load` 事件**：
+   学生端 `boot()` 挂在 `DOMContentLoaded` 上（`S.boot()` → `renderHome()`），
+   而页内联脚本里的 `await` 链是**微任务**、会先于 `DOMContentLoaded` 跑完 ——
+   直接调 `enterBoard()` 会被随后的 `renderHome()` 覆盖，
+   现象是"明明进了互动，页面还是首页"。同理老师端要先等 `App` 就绪再 `App.go()`。
+7. 断言里**至少要有两条"抗轮询"的**：
+   `await App.refreshBoard(true)` 连做 3 次后抽中结果仍在、
+   `await S.refreshBoard()` 连做 2 次后学生输入框里的名字还在。
+
+### 其他约定
 
 - **画布/交互类 bug**：写独立**探针页 + 假数据**直接驱动 `renderNotes()`，
   按真实时序模拟「缩放 → 全屏 → 每 N 秒重绘」，把 `TY._ncViews[key]` 的 `tx/ty/z`
@@ -127,6 +281,8 @@ python3 -m http.server 8921 --bind 127.0.0.1
 - **样式类 bug**：在探针页里用**内联样式现场还原旧声明**搭对照组，
   比对测量数值（高度、`scrollWidth` vs `clientWidth`），避免"改了但其实没生效"。
 - **改完 `css/style.css` 必须提醒用户强制刷新**（`⌘ + Shift + R`），缓存极顽固。
+- **真起服务时**（要看视觉效果 / 人工点一遍），`python3 -m http.server 8921 --bind 127.0.0.1`
+  要在**同一条命令里**起、用、关，别指望它能跨调用活着。
 - **用 `agent-browser` 验证时，URL 必须带缓存参数**（如 `index.html?v=7#c=xxx`）：
   它默认命中磁盘缓存，改了文件但不带参数会读到旧页面，**会误判成"改了没生效"**。
 - 同理，`agent-browser` 的 daemon 重启（命令被 SIGTERM 时）会**清空 localStorage**，
@@ -138,6 +294,18 @@ python3 -m http.server 8921 --bind 127.0.0.1
   ```
   坐标用 `getBoundingClientRect()` 现场算；页面上有「删除」按钮时**别按估算坐标点**，
   否则会弹出删除确认框把后续命令全卡住（误触发过，用 `dialog dismiss` 收场）。
+- **`agent-browser` 的 `click` 在元素不在视口里时是「静默成功」**（打印 `✓ Done` 但什么都没点）。
+  **每次 click 前先 `agent-browser scrollintoview <sel>`**，否则会误判成"代码没生效"。
+  （2026-09-17 在提交按钮上白踩两次。）
+- **`agent-browser set viewport 390 844`** 可以把窗口切成手机尺寸 —— 学生端的问题
+  几乎都是手机宽度才会暴露（本次的落点出画就是这样），别只在 1280 宽的窗口里验收。
+  另外 `agent-browser errors` / `console` 能直接看页面报错，收尾时过一遍。
+- **后台常驻的 http 服务在工具环境里也能活**（2026-09-17 实测）：用工具的
+  **后台任务方式**启动（等价 `run_in_background`，会拿到一个 task_id），
+  而不是 `nohup ... &` —— 后者随命令结束就被回收。本次整套验证都跑在这个服务上。
+- **探针目录不需要重新拷贝**：把真实项目文件 **软链**进探针目录
+  （`ln -s <项目>/student.html <探针>/student.html` 等，`python3 -m http.server` 会跟随软链），
+  这样改完真实文件只要刷新页面就是新代码，不用反复同步副本。
 
 ---
 
@@ -188,8 +356,46 @@ python3 -m http.server 8921 --bind 127.0.0.1
   再新建就算出 3，与已有的 3 撞车。
   **两处都已修**：`createBoard` 改成 `max(step) + 1`（本地/云端两套），排序改成全量重写 `1..n`。
   历史脏数据用 `reorderBoards(该课程当前展示顺序)` 幂等刷一遍即可（不改变视觉顺序，只把 step 排整齐）。
-- **随机点名**：`boards.type = 'rollcall'`，学生扫码填名字 → 写一条
-  `submissions.type='signin'`（复用 submissions，不新增表）；老师端可随机抽人 / 随机分组。
+- **随机点名（第 6 种互动类型）**：`boards.type = 'rollcall'`，学生扫码填名字 → 写一条
+  `submissions.type='signin'`（复用 submissions，不新增表）；学生端报名页
+  `S.renderSignGate`，老师端大屏名册 `renderRoster` + 点名/分组面板 `buildRollCallPanel`。
+  抽中结果存 `App.rc`（约束 8），名册按名字去重，分组用 `splitIntoK`。
+  **完整说明见上面「随机点名子系统」一节。**
+  已验证：探针 41 PASS / 0 FAIL（老师端）+ 22 PASS / 0 FAIL（学生端），
+  含「3 轮轮询后抽中结果仍在」「2 轮轮询后学生输入框内容还在」两条抗轮询断言。
+- **学生端「作答动线」重做（2026-09-17，起因是用户在手机上看到「上面 4 个选项、下面 4 个选项，到底点哪」）**：
+  1. **选择题没交之前不剧透结果**（约束 9）：结果区只在 `submissions` 里出现
+     `👀 提交后就能看到大家的选择 · 已有 N 人作答`，页面上一份可点选项；
+     提交后结果解锁、我的那项加橙框 + `你的选择` 徽章，并自动滚到结果区。
+  2. **提交后跳转**：`S.jumpToResults(i)`（`scrollIntoView` + 闪一下）。
+     便签墙 / 填空 / 词云也接了 —— 交完直接看到自己的东西落在哪。
+  3. **「改一下我的选择」**：`S.editChoice()` 把投票卡带回原选项，
+     重新提交前先删掉旧行（不然记两票）。`S.cancelEdit()` 放弃改选。
+  4. **便签墙：输入区挪到白板前面**（`buildBoardHTML` 里按类型决定
+     `iHtml + uHtml` 还是 `uHtml + iHtml`）—— 学生一进来就能落笔，
+     不用先翻过一整块 540px 的白板去找输入框。白板标题也从「自由白板」改成「全班的便签墙」。
+     注意：轮询不会重建 `notes` 的输入区，所以这次重排不影响约束 5 的图片状态那条。
+  5. `student.html` 里补上了 `.unit-card` / `.unit-no` / `.unit-res` 的样式 ——
+     这三个类名**学生端以前只有类名没有样式**（只在 `index.html` 的内联 style 里定义过），
+     结果区一直是"裸"的。
+- **便签落点会跑出视野**（`findFreeSpot` 的老毛病，顺手修了）：
+  `findFreeSpot(rows, center, box)` 新增可选 `box`；学生端提交便签时传
+  `{ w, h, nw, nh }`（可视区世界尺寸 + 这张便签尺寸），候选点就会被夹在可视区内。
+  ⚠️ **陷阱：`data.px/py` 是便签的左上角**（渲染就是按左上角定位的），
+  但搜索里的 `noteWorldPos()` 把它们当中心点比距离 —— 所以夹的范围是
+  `[-半边, +半边 - 便签自身尺寸]`（`clampSpan`），**不能对称地夹**，
+  否则便签会有一半挂在屏幕外（第一版就是这么写错的）。
+  老师端便签坞不传 `box` → `hw/hh = Infinity` → 行为与改动前逐字节一致。
+  实测（390×844 手机视口）：落点从「右半张出画」变成完全落在可视区内。
+- **选择题「不勾多选却变成了多选」（2026-09-17 用户反馈，根因见约束 10）**：
+  `createBoard()` 里 `!!document.getElementById('cfg-multi')` 恒为 true，所以**所有**选择题
+  都被存成 `config.multi = true`。已修（读 `.checked`）。
+  另在大屏动作区加了「🔘 单选 / ☑️ 多选」按钮（`App.toggleMulti` → `updateBoard({config})`），
+  老互动不用删了重建。
+  实测：不勾 → `multi:false`；勾了 → `multi:true`；大屏按钮点一下 →
+  文案变「☑️ 多选」且结果条里立刻出现「（多选）」；学生端单选时
+  `head = 「选一个你的答案」`、无 `multi-hint`、连点两项只留后点的那项（`choiceSel=[1]`）；
+  多选互动回归正常（可勾两项、再点取消）。
 
 **悬而未决**：
 

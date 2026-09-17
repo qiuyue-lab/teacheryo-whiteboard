@@ -96,7 +96,10 @@ function subsOf(rows, u) {
 }
 
 /* ---------- 渲染器：把一组 submission 画进 el ---------- */
-function renderChoice(holder, unit, rows) {
+/* opts.mySel（可选）：我自己选的序号数组（学生端用来标「你的选择」）。
+ * 老师端不传 → 画出来的东西和以前一模一样。 */
+function renderChoice(holder, unit, rows, opts) {
+  const mySel = (opts && opts.mySel) || [];
   const totalRows = rows.filter((r) => Array.isArray(r.data.sel)).length;
   const base = Math.max(totalRows, 1);
   holder.innerHTML = '';
@@ -104,12 +107,13 @@ function renderChoice(holder, unit, rows) {
     const picked = rows.filter((r) => Array.isArray(r.data.sel) && r.data.sel.includes(i));
     const cn = picked.length;
     const pct = Math.round((cn / base) * 100);
-    const d = document.createElement('div'); d.className = 'opt-bar';
+    const isMine = mySel.indexOf(i) >= 0;
+    const d = document.createElement('div'); d.className = 'opt-bar' + (isMine ? ' mine' : '');
     const chips = cn > 0
       ? `<div class="ob-pickers">${picked.map((r) => `<span class="picker-chip" title="${fmtTime(r.created_at)}">${esc(r.author)}</span>`).join('')}</div>`
       : '';
     d.innerHTML = `<div class="ob-fill" style="width:${pct}%"></div>
-      <div class="ob-row"><span>${String.fromCharCode(65 + i)}. ${esc(opt)}</span><span class="ob-pct">${cn > 0 ? pct + '%' : ''}</span></div>
+      <div class="ob-row"><span>${String.fromCharCode(65 + i)}. ${esc(opt)}${isMine ? '<span class="ob-mine">你的选择</span>' : ''}</span><span class="ob-pct">${cn > 0 ? pct + '%' : ''}</span></div>
       <div class="ob-count">${cn} 人选择${unit.multi ? '（多选）' : ''}</div>
       ${chips}`;
     holder.appendChild(d);
@@ -163,7 +167,7 @@ function rosterItems(rows) {
   const order = [];
   (rows || []).slice().sort((a, b) => (a.created_at || 0) - (b.created_at || 0)).forEach((r) => {
     if (!r || r.type !== 'signin') return;
-    const name = String((r.data && r.data.name) || r.author || '').replace(/\s+/g, ' ').trim();
+    const name = signinName(r);
     if (!name) return;
     if (!(name in map)) order.push(name);
     map[name] = { id: r.id, uid: r.uid || '', name, created_at: r.created_at, sub: r };
@@ -171,6 +175,11 @@ function rosterItems(rows) {
   return order.map((n) => map[n]);
 }
 function rosterNames(rows) { return rosterItems(rows).map((x) => x.name); }
+/* 一行 signin 提交对应的「名字」。名册去重、移除名册里的人等地方都用它，
+ * 保证「同一个名字」在所有地方是同一个口径（前后空格/连续空格先归一）。 */
+function signinName(row) {
+  return String((row && row.data && row.data.name) || (row && row.author) || '').replace(/\s+/g, ' ').trim();
+}
 /* 名册渲染器：学生端 / 老师端 / 下发弹窗三处共用 */
 function renderRoster(holder, unit, rows, opts) {
   opts = opts || {};
@@ -245,17 +254,28 @@ function noteSeedPos(id, idx, total) {
   return { x: clamp01(s.x + ((h % 13) - 6) / 220), y: clamp01(s.y + (((h >> 4) % 13) - 6) / 220) };
 }
 /* 找「最空」的落点：从视口中心向外做黄金角搜索，挑离已有便签最远的点。
- * 返回**世界坐标**（不再归一化），所以便签能贴到基准区之外的任意地方。 */
-function findFreeSpot(rows, center) {
+ * 返回**世界坐标**（不再归一化），所以便签能贴到基准区之外的任意地方。
+ * box（可选）：{w,h} 当前可视区的世界尺寸，{nw,nh} 这张便签的尺寸。给了就把落点夹在
+ * 可视区内 —— 否则搜索会一路往外跑，便签虽然「不扎堆」却贴到了屏幕外，学生看不到自己那张。
+ * 注意 px/py 是便签的**左上角**（渲染时就是按左上角定位的），所以夹的范围是
+ * [-半边, +半边 - 便签自身尺寸]，不能当成中心对称地夹。 */
+function clampSpan(v, lo, hi) { return (hi < lo) ? (lo + hi) / 2 : Math.max(lo, Math.min(hi, v)); }
+function findFreeSpot(rows, center, box) {
   const pts = (rows || []).filter((r) => r && r.data).map((r) => noteWorldPos(r));
   const cx = (center && typeof center.x === 'number') ? center.x : NC_BASE_W / 2;
   const cy = (center && typeof center.y === 'number') ? center.y : NC_BASE_H / 2;
+  const hw = (box && box.w) ? box.w / 2 : Infinity;          // 可视区半宽（世界像素）
+  const hh = (box && box.h) ? box.h / 2 : Infinity;
+  const nw = (box && box.nw) || 190;                          // 便签自身尺寸
+  const nh = (box && box.nh) || 170;
   const GAP = 200;                      // 期望的最小间距（世界像素）
   let best = { x: cx, y: cy }, bestD = -1;
   for (let i = 0; i < 200; i++) {
     const ang = i * 2.399963229728653;  // 黄金角
     const rad = 95 + 54 * Math.sqrt(i);
-    const c = { x: cx + Math.cos(ang) * rad * 1.5, y: cy + Math.sin(ang) * rad };
+    const ox = clampSpan(Math.cos(ang) * rad * 1.5, -hw, hw - nw);
+    const oy = clampSpan(Math.sin(ang) * rad, -hh, hh - nh);
+    const c = { x: cx + ox, y: cy + oy };
     if (!pts.length) return c;
     let d = Infinity;
     for (let j = 0; j < pts.length; j++) {

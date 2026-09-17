@@ -67,6 +67,29 @@
   .stu-live{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:800;color:var(--ok)}
   .stu-live i{width:6px;height:6px;border-radius:50%;background:var(--ok);animation:stu-blink 1.4s infinite}
   @keyframes stu-blink{0%,100%{opacity:1}50%{opacity:0}}
+  /* 结果卡（此前学生端只有类名、没有样式，结果区是「裸」的） */
+  .unit-card{background:var(--paper);border:2px solid var(--line);border-radius:16px;padding:15px 16px;margin-bottom:14px;box-shadow:3px 3px 0 rgba(28,25,23,.08)}
+  .unit-card h3{font-size:15.5px;font-weight:900;margin-bottom:8px;line-height:1.5}
+  .unit-no{color:var(--ink-3);font-size:11px;font-weight:800;margin-bottom:8px;letter-spacing:.02em}
+  /* 选择题没作答前把结果区收起来：页面上只留下面投票卡那一份选项，
+     否则「上面一份、下面一份」学生不知道该点哪（见 AGENTS 协作提醒） */
+  .unit-card.locked{background:transparent;border-style:dashed;border-color:var(--line-soft);box-shadow:none}
+  .unit-card.locked .unit-no{display:none}
+  .res-lock{display:flex;gap:10px;align-items:flex-start;line-height:1.7;font-weight:700;font-size:12.5px;color:var(--ink-2)}
+  .res-lock .rl-ico{font-size:19px;line-height:1.35}
+  .res-lock b{display:block;font-size:13.5px;font-weight:900;color:var(--ink);margin-bottom:2px}
+  .res-lock .rl-sub{font-size:11.5px;color:var(--ink-3)}
+  /* 结果里标出「你选的那一项」 */
+  .opt-bar.mine{border-color:var(--accent);box-shadow:3px 3px 0 var(--accent)}
+  .ob-mine{display:inline-block;margin-left:7px;font-size:10.5px;font-weight:900;color:#fff;background:var(--accent);border-radius:999px;padding:1px 8px;vertical-align:1.5px}
+  /* 投票卡 */
+  .vote-head{display:flex;gap:9px;align-items:flex-start;margin-bottom:11px}
+  .vote-head .vh-ico{font-size:19px;line-height:1.2}
+  .vote-head b{display:block;font-size:14px;font-weight:900}
+  .vote-head small{display:block;color:var(--ink-3);font-weight:700;font-size:11.5px;margin-top:2px}
+  .stu-submitted .ss-where{font-size:12px;color:var(--ink-2);font-weight:700;margin-top:4px}
+  @keyframes ty-flash{0%,100%{box-shadow:3px 3px 0 rgba(28,25,23,.08)}25%{box-shadow:0 0 0 5px var(--accent-soft),3px 3px 0 var(--accent)}}
+  .unit-card.flash{animation:ty-flash 1.5s ease 1}
 </style>
 </head>
 <body>
@@ -95,6 +118,7 @@ const S = {
   qIdx: 0, choiceSel: [], subbed: [],
   selColor: '', selQuestion: 0,
   boardRows: [], poll: null, materialSels: [], imgData: '', renaming: false,
+  myUid: '', editing: false,
   boot() {
     const bid = new URLSearchParams(location.search).get('b');
     const code = (new URLSearchParams(location.search).get('c') || '').trim();
@@ -119,6 +143,7 @@ const S = {
     // 恢复已提交状态
     this.subbed = this.loadSubbed();
     this.materialSels = [];
+    this.choiceSel = []; this.editing = false; this.myUid = '';
     if (!units.length) { this.renderError('暂无题目', '老师还没设置题目内容。'); return; }
     // 如果从首页输码进来、名字已设好，跳过叫门页直接进看板
     if (this.name) { this.renderBoard(); return; }
@@ -260,6 +285,9 @@ const S = {
     const app = document.getElementById('app');
     const b = this.board;
     const { units, meta } = boardUnits(b);
+    // 认自己：只用来在结果里标「你的选择」/ 改选时认领自己那条
+    // （云端一台设备一个匿名 uid；本地模式一台浏览器一个 uid）
+    if (!this.myUid) { try { this.myUid = await TY.db.currentUid(); } catch (e) { this.myUid = ''; } }
     // 拉取初始数据
     try { this.boardRows = await TY.db.listSubmissions(b.id); }
     catch (e) { this.boardRows = []; }
@@ -306,23 +334,26 @@ const S = {
       </div>`;
     }
     // 每个题单元的结果区
-    h += '<div id="stu-units">';
+    let uHtml = '<div id="stu-units">';
     units.forEach((u, i) => {
       const isNote = u.subType === 'note';
       const isRoster = u.subType === 'signin';
       const count = this.unitCount(u);
-      let tag = isNote ? '自由白板'
+      let tag = isNote ? '全班的便签墙'
         : (isRoster ? '报名名册'
           : (b.type === 'material' ? '配套问题 ' + (i + 1) + ' · ' + TYPES[u.subType].name : TYPES[b.type].name));
-      h += `<div class="unit-card" id="unit-${i}">
+      uHtml += `<div class="unit-card" id="unit-${i}">
         <div class="unit-no" id="unit-no-${i}">${esc(tag)} · ${count} ${isRoster ? '人' : '条'}</div>
         ${u.title ? '<h3>' + esc(u.title) + '</h3>' : ''}
         <div class="unit-res" id="unit-res-${i}"></div>
       </div>`;
     });
-    h += '</div>';
-    // 输入区
-    h += '<div class="stu-input" id="stu-input-area"></div>';
+    uHtml += '</div>';
+    const iHtml = '<div class="stu-input" id="stu-input-area"></div>';
+    /* 便签墙把「写」放最前面：学生一进来就能落笔，不用先翻过一整块白板找输入框；
+     * 提交后会自动滚到下面的白板看自己的便签落在哪。
+     * 选择题相反 —— 题目（结果卡）在上、投票卡在下，才不会「选项上面一份下面一份」。 */
+    h += (b.type === 'notes') ? (iHtml + uHtml) : (uHtml + iHtml);
     return h;
   },
   renderAllUnits(units) {
@@ -330,6 +361,12 @@ const S = {
       const container = document.getElementById('unit-res-' + i);
       if (!container) return;
       const unitRows = subsOf(this.boardRows, u);
+      // 选择题：自己还没提交 → 结果区先收起来（只留一句提示）。
+      // 这样页面上「可以点的选项」只有下面投票卡那一份，不会上下各摆一份。
+      const locked = (u.subType === 'choice') && !this.isSubmitted(i);
+      const card = document.getElementById('unit-' + i);
+      if (card) card.classList.toggle('locked', locked);
+      if (locked) { container.innerHTML = this.lockHTML(unitRows); return; }
       if (u.subType === 'note') {
         renderNotes(container, u, unitRows, {
           canDel: false,
@@ -353,7 +390,7 @@ const S = {
           }
         });
       }
-      else if (u.subType === 'choice') renderChoice(container, u, unitRows);
+      else if (u.subType === 'choice') renderChoice(container, u, unitRows, { mySel: this.myPicked(i) });
       else if (u.subType === 'blank') renderBlank(container, u, unitRows);
       else if (u.subType === 'cloud') renderCloud(container, u, unitRows);
       else if (u.subType === 'signin') renderRoster(container, u, unitRows);
@@ -368,7 +405,66 @@ const S = {
       no.textContent = prefix + '· ' + this.unitCount(u) + ' ' + (isRoster ? '人' : '条');
     });
   },
-  /* 输入区：根据互动类型渲染不同的输入控件 */
+  /* 未作答时结果区的占位：告诉学生「答案交了就解锁」，而不是空着让人以为坏了 */
+  lockHTML(rows) {
+    const n = rows.length;
+    return `<div class="res-lock"><span class="rl-ico">👀</span><div>
+      <b>提交后就能看到大家的选择</b>
+      <div class="rl-sub">${n ? '已有 ' + n + ' 人作答 · ' : ''}先选好你自己的答案，提交后这里会自动打开</div>
+    </div></div>`;
+  },
+  /* 我在这道题上提交的那条（最新的一条），认不出返回 null */
+  myRow(partIdx) {
+    if (!this.myUid) return null;
+    return this.boardRows
+      .filter((r) => r.uid === this.myUid && (r.part_idx || 0) === partIdx)
+      .sort((a, b) => (b.created_at || 0) - (a.created_at || 0))[0] || null;
+  },
+  myPicked(partIdx) {
+    const row = this.myRow(partIdx);
+    const sel = (row && Array.isArray(row.data && row.data.sel)) ? row.data.sel.slice() : [];
+    return sel.sort((a, b) => a - b);   // 按选项顺序排好，「你的选择：A、C」不会跳来跳去
+  },
+  /* 提交后把结果区拉到眼前 + 闪一下 —— 「我这票交到哪去了」当场就有答案 */
+  jumpToResults(partIdx) {
+    const el = document.getElementById('unit-' + partIdx);
+    if (!el) return;
+    try { el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+    catch (e) { el.scrollIntoView(); }
+    el.classList.add('flash');
+    setTimeout(() => { el.classList.remove('flash'); }, 1600);
+  },
+  /* 「已提交」小条：选择题带上「你的选择」和「改一下」 */
+  doneStrip(partIdx) {
+    const u = this.units[partIdx] || {};
+    const isChoice = u.subType === 'choice';
+    const letters = (isChoice ? this.myPicked(partIdx) : []).map((i) => String.fromCharCode(65 + i)).join('、');
+    const where = (this.board.type === 'notes') ? '下面' : '上面';
+    const retry = (isChoice && this.board.type === 'choice')
+      ? `<div><button class="btn btn-ghost btn-sm" style="margin-top:9px" onclick="S.editChoice()">改一下我的选择</button></div>` : '';
+    return `<div class="stu-submitted">✅ 已提交${letters ? ' · 你的选择：<b>' + letters + '</b>' : ''}
+      <div class="ss-where">${where}是全班实时结果${isChoice ? '（你选的那项标了橙框）' : ''}</div>${retry}</div>`;
+  },
+  /* 改选：把投票卡放回来（带上原来选中的项）；重新提交时会先删掉旧的那条，不会记成两票 */
+  editChoice() {
+    this.editing = true;
+    this.bindInput();
+    const el = document.getElementById('stu-input-area');
+    if (el) { try { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) { /* 忽略 */ } }
+  },
+  cancelEdit() {
+    this.editing = false;
+    this.choiceSel = [];
+    this.bindInput();
+  },
+  /* 白板可视区的世界尺寸（算上缩放）——新便签的落点要夹在它里面，别贴到手机屏幕外 */
+  noteBox(i) {
+    const vp = document.querySelector('#unit-res-' + (i || 0) + ' .note-viewport');
+    if (!vp || !vp.clientWidth) return null;
+    const st = TY._ncViews['sb:' + this.board.id + ':' + (i || 0)] || {};
+    const z = st.z || 1;
+    return { w: vp.clientWidth / z, h: vp.clientHeight / z };
+  },  /* 输入区：根据互动类型渲染不同的输入控件 */
   bindInput() {
     const area = document.getElementById('stu-input-area');
     const b = this.board;
@@ -415,19 +511,26 @@ const S = {
       }
     } else if (b.type === 'choice') {
       const u = units[0];
-      if (this.isSubmitted(0)) {
-        area.innerHTML = `<div class="stu-submitted">✅ 你已经提交过了 · 上方是全班实时结果</div>`;
+      if (this.isSubmitted(0) && !this.editing) {
+        area.innerHTML = this.doneStrip(0);
       } else {
-        let h = `<div class="opt-vote">${u.options.map((o, i) =>
-          `<div class="choice-opt" onclick="S.pickFromBoard(${i})"><span class="co-radio" id="sr-${i}"></span><span>${String.fromCharCode(65 + i)}. ${esc(o)}</span></div>`
-        ).join('')}</div>`;
-        if (u.multi) h += '<div class="multi-hint">可多选，再点一次取消</div>';
-        h += `<button class="btn btn-primary" style="width:100%;margin-top:12px;padding:13px" onclick="S.submitChoiceFromBoard()">提交 ✅</button>`;
+        // 改选时把上次选的项带回来
+        this.choiceSel = this.editing ? this.myPicked(0) : (this.choiceSel || []);
+        let h = `<div class="vote-head"><span class="vh-ico">🗳️</span><div>
+            <b>${u.multi ? '选出你的答案（可多选）' : '选一个你的答案'}</b>
+            <small>提交后自动跳到全班实时结果</small></div></div>
+          <div class="opt-vote">${u.options.map((o, i) =>
+            `<div class="choice-opt" onclick="S.pickFromBoard(${i})"><span class="co-radio" id="sr-${i}"></span><span>${String.fromCharCode(65 + i)}. ${esc(o)}</span></div>`
+          ).join('')}</div>`;
+        if (u.multi) h += '<div class="multi-hint">点一下选中，再点一次取消</div>';
+        h += `<button class="btn btn-primary" style="width:100%;margin-top:12px;padding:13px" onclick="S.submitChoiceFromBoard()">${this.editing ? '更新我的选择 ✅' : '提交 ✅'}</button>`;
+        if (this.editing) h += `<div class="side-note" style="text-align:center;margin-top:8px"><a onclick="S.cancelEdit()" style="cursor:pointer">算了，不改了</a></div>`;
         area.innerHTML = h;
+        this.applyChoiceUI();
       }
     } else if (b.type === 'blank' || b.type === 'cloud') {
       if (this.isSubmitted(0)) {
-        area.innerHTML = `<div class="stu-submitted">✅ 你已经提交过了 · 上方是全班实时结果</div>`;
+        area.innerHTML = this.doneStrip(0);
       } else {
         const ph = b.type === 'cloud' ? '写一两个词，最多 3 个' : '写下你的回答…';
         area.innerHTML = `<div class="field"><textarea id="stu-inp" placeholder="${ph}" style="min-height:90px"></textarea></div>
@@ -525,46 +628,62 @@ const S = {
     const img = this.imgData || '';
     if (!text && !img) { toast('写点内容或加一张图片再贴吧'); return; }
     const u = this.units[0];
-    // 自动找最空的位置落点：以「你当前看到的视口中心」为起点，避免便签叠在一起
-    const spot = findFreeSpot(this.boardRows.filter((r) => r.type === 'note'), TY._ncCenterLast);
-    const data = { text, color: this.selColor, shape: this.selShape || 'square', px: spot.x, py: spot.y, w: img ? 210 : 170 };
+    // 自动找最空的位置落点：以「你当前看到的视口中心」为起点，避免便签叠在一起；
+    // 再夹在可视区内，保证贴完能看见自己那张（便签按左上角定位，见 findFreeSpot 注释）
+    const noteW = img ? 210 : 170;
+    const spot = findFreeSpot(this.boardRows.filter((r) => r.type === 'note'), TY._ncCenterLast, Object.assign({ nw: noteW, nh: 170 }, this.noteBox(u.qIdx) || {}));
+    const data = { text, color: this.selColor, shape: this.selShape || 'square', px: spot.x, py: spot.y, w: noteW };
     if (img) data.img = img;   // 只有真加了图才写这个字段，避免空串撑大数据库
     TY.db.submit({ boardId: this.board.id, type: 'note', partIdx: u.qIdx, author: this.name, data })
-      .then(() => {
-        toast('贴好啦，可拖动调整位置 ✨');
+      .then(async () => {
+        toast('贴好啦 ✨ 看白板上你的便签');
         if (ta) ta.value = '';
         this.imgData = '';
         const hint = document.getElementById('stu-img-hint');
         if (hint) hint.textContent = '可选 · 会自动压缩';
         this.setImgPreview();
-        this.refreshBoard();
-        setTimeout(() => { const t = document.getElementById('stu-note-text'); if (t) t.focus(); }, 60);
+        if (ta) ta.blur();   // 手机键盘弹着的时候页面滚不动，先收起再滚到白板
+        await this.refreshBoard();
+        this.jumpToResults(u.qIdx);   // 跳到白板，让学生看见自己的便签落在哪
       })
       .catch((e) => toast(e.message));
   },
   pickFromBoard(i) {
     const u = this.units[0];
-    const el = document.querySelectorAll('#stu-input-area .choice-opt')[i];
-    if (!el) return;
-    const radio = document.getElementById('sr-' + i);
     if (u.multi) {
       const at = this.choiceSel.indexOf(i);
-      if (at >= 0) { this.choiceSel.splice(at, 1); el.classList.remove('on'); if (radio) radio.classList.remove('on'); }
-      else { this.choiceSel.push(i); el.classList.add('on'); if (radio) radio.classList.add('on'); }
+      if (at >= 0) this.choiceSel.splice(at, 1);
+      else this.choiceSel.push(i);
     } else {
-      this.choiceSel = [i];
-      document.querySelectorAll('#stu-input-area .choice-opt').forEach((x, j) => {
-        x.classList.toggle('on', j === i);
-        const r = document.getElementById('sr-' + j); if (r) r.classList.toggle('on', j === i);
-      });
+      this.choiceSel = [i];   // 单选：再点别的就改过去，不用先取消
     }
+    this.applyChoiceUI();
   },
-  submitChoiceFromBoard() {
+  /* 把 this.choiceSel 同步到投票卡的勾上（幂等，可反复调用） */
+  applyChoiceUI() {
+    document.querySelectorAll('#stu-input-area .choice-opt').forEach((x, j) => {
+      const on = this.choiceSel.indexOf(j) >= 0;
+      x.classList.toggle('on', on);
+      const r = document.getElementById('sr-' + j); if (r) r.classList.toggle('on', on);
+    });
+  },
+  async submitChoiceFromBoard() {
     if (!this.choiceSel.length) { toast('请先选择一个选项'); return; }
     const u = this.units[0];
-    TY.db.submit({ boardId: this.board.id, type: u.subType, partIdx: 0, author: this.name, data: { sel: this.choiceSel.slice() } })
-      .then(() => { this.markSubmitted(0); toast('提交成功 ✅'); this.refreshBoard(); })
-      .catch((e) => toast(e.message));
+    const editing = this.editing;
+    try {
+      // 同一 uid 在本题上**只保留一条**：改选时先删旧的那条，否则会记成两票。
+      // 不加 `if (editing)` 守卫是故意的 —— 学生清了浏览器数据（隐私模式 / 清理站点数据）后
+      // 本地「已提交」标记会丢，但库里的行还在，再交一次就会让同一人在大屏上出现两次。
+      const old = this.myRow(0);
+      if (old) await TY.db.removeSubmission(old.id);
+      await TY.db.submit({ boardId: this.board.id, type: u.subType, partIdx: 0, author: this.name, data: { sel: this.choiceSel.slice().sort((a, b) => a - b) } });
+      this.editing = false;
+      this.markSubmitted(0);
+      toast(editing ? '已更新你的选择 ✅' : '提交成功 ✅');
+      await this.refreshBoard();
+      this.jumpToResults(0);   // 交完票自动跳到全班结果
+    } catch (e) { toast(e.message); }
   },
   submitTextFromBoard() {
     const inp = document.getElementById('stu-inp');
@@ -572,7 +691,12 @@ const S = {
     if (!text) { toast(this.board.type === 'cloud' ? '写一个词再提交吧' : '写点内容再提交吧'); return; }
     const u = this.units[0];
     TY.db.submit({ boardId: this.board.id, type: u.subType, partIdx: 0, author: this.name, data: { text } })
-      .then(() => { this.markSubmitted(0); toast('提交成功 ✅'); this.refreshBoard(); })
+      .then(async () => {
+        this.markSubmitted(0); toast('提交成功 ✅');
+        if (inp) inp.blur();          // 先收键盘再滚，手机上键盘弹着滚不动
+        await this.refreshBoard();
+        this.jumpToResults(0);
+      })
       .catch((e) => toast(e.message));
   },
   pickMaterialPart(partIdx, optIdx) {
@@ -589,14 +713,18 @@ const S = {
       const sel = this.materialSels[partIdx];
       if (!sel || !sel.length) { toast('请先选择一个选项'); return; }
       TY.db.submit({ boardId: this.board.id, type: 'choice', partIdx, author: this.name, data: { sel: sel.slice() } })
-        .then(() => { this.markSubmitted(partIdx); toast('提交成功 ✅'); this.refreshBoard(); })
+        .then(async () => { this.markSubmitted(partIdx); toast('提交成功 ✅'); await this.refreshBoard(); this.jumpToResults(partIdx); })
         .catch((e) => toast(e.message));
     } else {
       const inp = document.getElementById('stu-mp-' + partIdx);
       const text = (inp && inp.value || '').trim();
       if (!text) { toast('写点内容再提交吧'); return; }
       TY.db.submit({ boardId: this.board.id, type: u.subType, partIdx, author: this.name, data: { text } })
-        .then(() => { this.markSubmitted(partIdx); toast('提交成功 ✅'); this.refreshBoard(); })
+        .then(async () => {
+          this.markSubmitted(partIdx); toast('提交成功 ✅');
+          if (inp) inp.blur();
+          await this.refreshBoard(); this.jumpToResults(partIdx);
+        })
         .catch((e) => toast(e.message));
     }
   },
@@ -629,11 +757,9 @@ const S = {
         if (area && (!!area.querySelector('.stu-submitted')) !== this.isSubmitted(0)) this.bindInput();
       }
       if (this.board.type === 'choice' || this.board.type === 'blank' || this.board.type === 'cloud') {
-        if (this.isSubmitted(0)) {
+        if (this.isSubmitted(0) && !this.editing) {
           const area = document.getElementById('stu-input-area');
-          if (area && !area.querySelector('.stu-submitted')) {
-            area.innerHTML = `<div class="stu-submitted">✅ 你已经提交过了 · 上方是全班实时结果</div>`;
-          }
+          if (area && !area.querySelector('.stu-submitted')) area.innerHTML = this.doneStrip(0);
         }
       }
     } catch (e) { /* 静默失败 */ }

@@ -620,8 +620,10 @@ const App = {
         const q = v('cfg-q').trim(); const opts = txtRows(v('cfg-opts'));
         if (!q) throw new Error('请填写题目'); if (opts.length < 2) throw new Error('至少 2 个选项');
         cfg.question = q; cfg.options = opts;
-        const multi = !!document.getElementById('cfg-multi');
-        cfg.multi = multi;
+        // ⚠️ 必须读 `.checked`。原来写的是 `!!document.getElementById('cfg-multi')` ——
+        // 那是 DOM 元素对象，**永远是 true**，所以「不勾多选」也会存成 multi:true，
+        // 结果里每个人都标着「（多选）」，学生端也变成可多选。不勾 = 单选。
+        cfg.multi = !!(document.getElementById('cfg-multi') || {}).checked;
         if (!title) title = '选择 · ' + q.slice(0, 18);
       } else if (t === 'blank') {
         const q = v('cfg-q').trim(); if (!q) throw new Error('请填写题目');
@@ -685,9 +687,15 @@ const App = {
     document.getElementById('board-body').innerHTML = '<div class="loading-zone">同步中…</div>';
     const act = document.getElementById('bt-actions');
     act.innerHTML = '';
-    const mk = (label, cls, fn) => { const x = document.createElement('button'); x.className = 'btn ' + cls + ' btn-sm'; x.textContent = label; x.onclick = fn; act.appendChild(x); };
+    const mk = (label, cls, fn, tip) => { const x = document.createElement('button'); x.className = 'btn ' + cls + ' btn-sm'; x.textContent = label; if (tip) x.title = tip; x.onclick = fn; act.appendChild(x); };
     mk('📱 下发', 'btn-primary', () => this.publish());
     mk('📄 导出', 'btn-ghost', () => this.exportText());
+    if (b.type === 'choice') {
+      // 单选/多选事后可改：老互动（建之前那个复选框 bug 存成 multi:true 的）不用删了重建
+      const isMulti = !!(b.config && b.config.multi);
+      mk(isMulti ? '☑️ 多选' : '🔘 单选', 'btn-ghost', () => this.toggleMulti(),
+        isMulti ? '现在是多选（学生可勾多项）。点一下改成单选' : '现在是单选（学生只能选一项）。点一下改成多选');
+    }
     if (b.status === 'active') mk('⏹ 结束互动', 'btn-danger', () => this.endBoard());
     else mk('▶ 重新开启', 'btn-ok', () => this.reopenBoard());
     mk('🗑 删除', 'btn-danger', () => this.delOneBoard(c.id, b.id));
@@ -943,14 +951,18 @@ const App = {
   async removeSignin(id) {
     const sub = (this.boardRows || []).find((s) => s.id === id);
     if (!sub) return;
-    const nm = (sub.data && sub.data.name) || sub.author || '';
+    const nm = signinName(sub);
+    if (!nm) return;
     if (!confirm('把「' + nm + '」从名册里移除？')) return;
     try {
-      // 删掉这一条即可 —— 名册按「名字」去重，删完这个名字就彻底不见了，
-      // 不会像按 uid 去重那样「删掉最新的就回退成旧名字」
-      await TY.db.removeSubmission(sub.id);
+      // ⚠️ 要删掉**这个名字的全部行**，不能只删被点的那一条：
+      //    同名同学用两台设备报名过、或改过名留下了旧行时，只删一条会让
+      //    这个名字「点掉又弹回来」（名册是按名字去重的，剩下那条会重新兜住它）。
+      const same = (this.boardRows || []).filter((s) => s.type === 'signin' && signinName(s) === nm);
+      for (const s of same) await TY.db.removeSubmission(s.id);   // 串行，保证本地/云端行为一致
       this.rc.picked = this.rc.picked.filter((x) => x !== nm);
       if (this.rc.current === nm) this.rc.current = '';
+      this.rc.groups = null;                                      // 名册变了，分组结果作废
       await this.refreshBoard(true);
       toast('已移除「' + nm + '」');
     } catch (e) { toast('移除失败：' + e.message); }
@@ -1094,6 +1106,20 @@ const App = {
   },
   async reopenBoard() {
     try { await TY.db.reopenBoard(this.ctx.bid); toast('已重新开启，学生可继续参与'); await this.refreshBoard(); } catch (e) { toast(e.message); }
+  },
+  /* 选择题：单选 ⇄ 多选。只改 config.multi，不动已提交的数据 ——
+     已投过的票照旧统计；学生端下一次轮询（2.5~3s）就会换成对应的可点方式。 */
+  async toggleMulti() {
+    const b = this.ctx.board;
+    if (!b || b.type !== 'choice') return;
+    const cfg = Object.assign({}, b.config || {});
+    cfg.multi = !cfg.multi;
+    try {
+      await TY.db.updateBoard(b.id, { config: cfg });
+      b.config = cfg;
+      toast(cfg.multi ? '已改成多选 ☑️ 学生可以勾多项' : '已改成单选 🔘 学生只能选一项');
+      await this.refreshBoard();   // 非静默刷新，顺手把按钮文案也换过来
+    } catch (e) { toast('切换失败：' + e.message); }
   },
   startPoll() {
     this.stopPoll();
