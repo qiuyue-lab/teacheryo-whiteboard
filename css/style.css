@@ -238,12 +238,13 @@ html.nc-full-lock,html.nc-full-lock body{overflow:hidden!important;height:100%}
 .note-dock .dk-sw.on{outline:3px solid var(--accent);outline-offset:1px}
 .note-dock .dk-sh{width:27px;height:27px;border:2px solid var(--line);border-radius:8px;background:#fff;cursor:pointer;font-size:13px;line-height:1;display:flex;align-items:center;justify-content:center;padding:0;color:var(--ink)}
 .note-dock .dk-sh.on{background:var(--accent-soft,#FBE7C9);border-color:var(--accent)}
-/* 大屏一键整理 */
+/* 大屏一键整理：现在只有一个「按点赞排序」按钮（见 index.html / AGENTS.md 约束 11） */
 .note-arrange{display:flex;flex-wrap:nowrap;gap:6px;align-items:center;margin:0 0 8px;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none}
 .note-arrange::-webkit-scrollbar{display:none}
-.note-arrange .ar-label{font-size:10.5px;font-weight:800;color:var(--ink-3);margin-right:2px;white-space:nowrap;flex:0 0 auto;line-height:1.4}
-.note-arrange .ar-btn{font-size:10.5px;font-weight:800;padding:4px 9px;border-radius:999px;border:2px solid var(--line);background:#fff;cursor:pointer;color:var(--ink);font-family:inherit;white-space:nowrap;flex:0 0 auto;line-height:1.4}
+.note-arrange .ar-btn{font-size:11px;font-weight:800;padding:5px 12px;border-radius:999px;border:2px solid var(--line);background:#fff;cursor:pointer;color:var(--ink);font-family:inherit;white-space:nowrap;flex:0 0 auto;line-height:1.4}
 .note-arrange .ar-btn:hover{background:var(--accent-soft,#FBE7C9)}
+.note-arrange .ar-main{border-color:var(--accent);background:var(--accent-soft,#FBE7C9)}
+.note-arrange .ar-main:hover{background:#fff}
 .wall-col{border-top:2px solid var(--line-soft);padding-top:12px;margin-top:8px}
 .wall-col>h4{font-size:14px;font-weight:900;margin-bottom:10px}
 .wall-col>h4 .cnt{color:var(--ink-3);font-size:11.5px;font-weight:700}

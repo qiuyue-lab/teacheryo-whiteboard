@@ -289,8 +289,16 @@ function findFreeSpot(rows, center, box) {
   }
   return best;
 }
-/* 自动整理：返回 [{id,x,y}]（**世界坐标**），供白板一键排布 */
-function arrangeLayout(mode, rows, anchors, center) {
+/* 自动整理：返回 [{id,x,y}]（**世界坐标**），供白板一键排布
+ *
+ * ⚠️ 便签墙 UI 目前只暴露「👍 按点赞排序」这一个动作（2026-09-17 起）。
+ *    其余 mode 的实现保留着 —— 想恢复只需在 index.html 的整理条里加回按钮，
+ *    不需要动这里（`time` 走的是和 `like` 同一段网格代码，只是排序键不同）。
+ *
+ * box（可选）：当前视口的**世界尺寸**（{w,h}，已按缩放折算），由 viewport.__worldSize() 给。
+ *   不给就退回按 1560×1080 基准区铺 —— 这正是一开始「点了整理像没反应」的原因：
+ *   网格是围着基准区算的，而老师眼前的视口可能比基准区窄/矮，排完便签落在视野上方之外。 */
+function arrangeLayout(mode, rows, anchors, center, box) {
   const list = (rows || []).filter((r) => r && r.data);
   const out = [];
   const put = (id, x, y) => out.push({ id, x, y });
@@ -301,19 +309,31 @@ function arrangeLayout(mode, rows, anchors, center) {
   const RIGHT = cx + NC_BASE_W / 2 - 110;
   const TOP = cy - NC_BASE_H / 2 + 130;
   const GAPY = 200;
-  const cols = Math.max(3, Math.min(8, Math.round((RIGHT - LEFT) / 190)));
-  const grid = (arr, o) => {
-    const c = o.cols || cols;
-    const left = (o.left != null) ? o.left : LEFT;
-    const right = (o.right != null) ? o.right : RIGHT;
-    const gapX = (right - left) / Math.max(c - 1, 1);
-    arr.forEach((r, i) => put(r.id, left + (i % c) * gapX, (o.top != null ? o.top : TOP) + Math.floor(i / c) * (o.gapY || GAPY)));
-  };
   if (mode === 'like' || mode === 'time') {
     const arr = [...list].sort((a, b) => mode === 'like'
       ? ((b.likes || 0) - (a.likes || 0))
       : ((a.created_at || 0) - (b.created_at || 0)));
-    grid(arr, {});
+    /* 铺成「从上到下、从左到右」的规整网格，并且**让它正好铺满当前可视区**：
+     *  - 格子尺寸按便签实际宽度放宽，避免宽便签互相压住；
+     *  - 列数取「网格长宽比最接近可视区长宽比」的那个 → 排完不用缩放就看得全；
+     *  - 整块网格以视口中心为中心对称摆放 → 不会像以前那样偏到视野上方。
+     * 排完 index.html 还会调一次 __fitContent() 兜底（内容超出时自动缩小到看得见）。 */
+    const n = arr.length;
+    const bw = (box && box.w) || NC_BASE_W;
+    const bh = (box && box.h) || NC_BASE_H;
+    const maxW = arr.reduce((m, r) => Math.max(m, clampNum((r.data && r.data.w) || 170, 90, 560)), 170);
+    const CW = Math.max(200, maxW + 34);        // 单格宽（含横向间距）
+    const CH = 220;                             // 单格高（含纵向间距）
+    let bestCols = 1, bestScore = Infinity;
+    for (let c = 1; c <= n; c++) {
+      const rw = c * CW, rh = Math.ceil(n / c) * CH;
+      const score = Math.abs(Math.log((rw / rh) / (bw / bh)));   // 长宽比越接近越小
+      if (score < bestScore - 1e-9) { bestScore = score; bestCols = c; }
+    }
+    const rowsN = Math.ceil(n / bestCols);
+    const left = cx - (bestCols * CW) / 2 + 17;   // +17：便签在格子里的左边距
+    const top = cy - (rowsN * CH) / 2 + 17;
+    arr.forEach((r, i) => put(r.id, left + (i % bestCols) * CW, top + Math.floor(i / bestCols) * CH));
   } else if (mode === 'color' || mode === 'shape') {
     const keyOf = (r) => mode === 'color' ? (r.data.color || 'yellow') : (r.data.shape || 'square');
     const keys = [];
@@ -442,6 +462,8 @@ function makeResizable(el, onResize) {
 TY._ncViews = TY._ncViews || {};
 /* 视口中心对应的世界坐标（每次重绘刷新）—— 新便签落点用它，保证贴在你眼前 */
 TY._ncCenter = TY._ncCenter || {};
+/* 视口对应的世界尺寸（宽/高，已按缩放折算）—— 整理网格按它铺，见 arrangeLayout */
+TY._ncSize = TY._ncSize || {};
 TY._ncCenterLast = TY._ncCenterLast || null;
 TY._ncBusy = false;
 /* 白板内正在输入/拖拽时，页面轮询应跳过重绘，避免打断操作 */
@@ -513,6 +535,8 @@ TY.setupInfiniteCanvas = function (viewport, canvas, opts) {
       y: (viewport.clientHeight / 2 - st.ty) / st.z - NC_ORIGIN
     };
     TY._ncCenterLast = TY._ncCenter[key];
+    // 视口对应的世界尺寸：「一键整理」按它算网格，排完才正好落在你看得见的地方
+    TY._ncSize[key] = { w: viewport.clientWidth / st.z, h: viewport.clientHeight / st.z };
   };
   const clampPan = () => {
     const vw = viewport.clientWidth, vh = viewport.clientHeight;
@@ -643,6 +667,8 @@ TY.setupInfiniteCanvas = function (viewport, canvas, opts) {
   viewport.__fitContent = fit;
   /* 当前视口中心的世界坐标 —— 新增便签的落点参考 */
   viewport.__worldCenter = () => TY._ncCenter[key] || null;
+  /* 当前视口的世界尺寸 —— 「一键整理」用它决定铺几列，排完便签正好在视野内 */
+  viewport.__worldSize = () => TY._ncSize[key] || null;
 };
 function renderNotes(holder, unit, rows, opts) {
   // 便签墙：无限自由白板 —— 可缩放平移 + 中心关键词锚点 + 便签自由摆放/缩放/换形状
@@ -734,14 +760,47 @@ function renderNotes(holder, unit, rows, opts) {
   if (wasFull) {
     viewport.classList.add('is-full');
     if (document.documentElement) document.documentElement.classList.add('nc-full-lock');
+    const fb = viewport.querySelector('[data-nc="full"]');
+    if (fb) { fb.textContent = '⤡'; fb.title = '退出全屏（Esc）'; }
+  }
+
+  /* 整理条（只有老师端传 opts.arrangeBar）：**必须在这里同步摆好**。
+   * 以前是 index.html 先 insertBefore 到卡片里，再由下面的
+   * setTimeout(() => TY.toggleNoteFull(viewport, true), 80) 搬进白板浮层 ——
+   * 于是每轮轮询都有 ~100ms 待在卡片里（全屏时那个位置在浮层后面，根本看不见），
+   * 便签墙左上角的整理条就成了「一直在闪」。实测每 2500ms 跳一次位。
+   * 现在：全屏 → 直接落成浮层；非全屏 → 直接放回卡片顶部。全程同步，不经过中间态。 */
+  if (opts.arrangeBar) {
+    const bar = opts.arrangeBar;
+    if (wasFull) {
+      bar.classList.add('full-float');
+      viewport.__barEl = bar;
+      viewport.__barHome = holder;
+      viewport.appendChild(bar);
+    } else {
+      holder.insertBefore(bar, holder.firstChild);
+    }
   }
 
   // 渲染时 viewport 还没进 DOM（宽高为 0），所有尺寸依赖的计算都拿不到正确值。
   // 延迟一帧等元素进入文档后再 setup，避免「放大就往右下角跳」的首屏闪烁
   const _needsDefer = !viewport.clientWidth;
   if (_needsDefer) {
-    // 先让 canvas 不可见，等 rAF 设好正确位置再露出来
-    canvas.style.visibility = 'hidden';
+    /* ⚠️ 只有**首屏**才需要把画布藏起来。renderNotes 一直在「还没插进文档」的时候被调用
+     * （卡片是渲染完才 append 到页面上的），所以 _needsDefer 每轮轮询都为真 ——
+     * 原来无脑 visibility:hidden 的结果是「白板内容每 2.5s 白一帧」。
+     * 位置是上一轮存好的（TY._ncViews），先把它同步打上去，就不用藏。 */
+    const savedSt = TY._ncViews && TY._ncViews[keepKey];
+    if (savedSt && savedSt.ready) {
+      /* 位置 + 可见性都**同步**一次性打上：新画布元素刚建出来时 visibility 是 ''（等于可见），
+       * 若留给下面的 rAF 再补一个 'visible'，逐帧记录里就会看到「'' → visible」的抖动
+       * ——视觉上无变化，但它会让「到底还闪不闪」这件事没法用一条断言证明。 */
+      canvas.style.transformOrigin = '0 0';
+      canvas.style.transform = 'translate(' + Math.round(savedSt.tx) + 'px,' + Math.round(savedSt.ty) + 'px) scale(' + savedSt.z + ')';
+      canvas.style.visibility = 'visible';
+    } else {
+      canvas.style.visibility = 'hidden';   // 首屏：还不知道该放哪儿，先藏
+    }
     requestAnimationFrame(() => {
       TY.setupInfiniteCanvas(viewport, canvas, opts);
       canvas.style.visibility = 'visible';
@@ -758,8 +817,8 @@ function renderNotes(holder, unit, rows, opts) {
       canvas.__bbox = (x0 === Infinity)
         ? { x: NC_ORIGIN + NC_BASE_W * 0.12, y: NC_ORIGIN + NC_BASE_H * 0.12, w: NC_BASE_W * 0.76, h: NC_BASE_H * 0.7 }
         : { x: x0 - 70, y: y0 - 70, w: (x1 - x0) + 140, h: (y1 - y0) + 140 };
-      // 全屏还原：此时视口已同步标记成全屏（见上方 wasFull），这里只负责把整理条搬进白板浮层
-      if (wasFull) setTimeout(() => TY.toggleNoteFull(viewport, true), 80);
+      // 整理条的摆放已经在上面同步做完了（以前这里还有个 setTimeout 80ms 的搬运动作 ——
+      // 那正是「全屏下整理条每轮轮询闪一次」的元凶，别再搬第二次）
     });
   } else {
     TY.setupInfiniteCanvas(viewport, canvas, opts);
@@ -777,7 +836,6 @@ function renderNotes(holder, unit, rows, opts) {
         ? { x: NC_ORIGIN + NC_BASE_W * 0.12, y: NC_ORIGIN + NC_BASE_H * 0.12, w: NC_BASE_W * 0.76, h: NC_BASE_H * 0.7 }
         : { x: x0 - 70, y: y0 - 70, w: (x1 - x0) + 140, h: (y1 - y0) + 140 };
     });
-    if (wasFull) requestAnimationFrame(() => TY.toggleNoteFull(viewport, true));
   }
 
   if (opts.bind) {

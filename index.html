@@ -740,23 +740,29 @@ const App = {
       const res = document.createElement('div'); res.className = 'unit-res';
       if (u.subType === 'note') {
         const active = b.status === 'active';
+        /* 整理条：只留「按点赞排序」一个动作。
+         * 老师反馈原来六个按钮（关键词聚拢/时间/颜色/形状/打散）在课堂上用不上，
+         * 而且最左边那个「一键整理」标签在全屏白板里每 2.5s 闪一次。
+         * 其余排布模式在 js/common.js 的 arrangeLayout 里保留着，想加回来只需在这里补按钮。
+         * ⚠️ 这个元素必须交给 renderNotes 去摆放（opts.arrangeBar），
+         *    不要在 renderBoardBody 里自己 insertBefore —— 那会让它在全屏时先落在卡片里、
+         *    再被搬进白板浮层，每轮轮询闪一次（见 common.js 里的详细注释）。 */
+        let bar = null;
         if (active) {
-          const bar = document.createElement('div'); bar.className = 'note-arrange';
-          bar.innerHTML = '<span class="ar-label">一键整理</span>'
-            + '<button class="ar-btn" data-ar="anchor" title="把便签聚到它提到的中心关键词周围">🎯 按关键词聚拢</button>'
-            + '<button class="ar-btn" data-ar="like" title="按点赞数排布">👍 按点赞排序</button>'
-            + '<button class="ar-btn" data-ar="time" title="按贴出时间排布">🕒 按时间排序</button>'
-            + '<button class="ar-btn" data-ar="color" title="按颜色分区">🎨 按颜色分组</button>'
-            + '<button class="ar-btn" data-ar="shape" title="按形状分区">🔷 按形状分组</button>'
-            + '<button class="ar-btn" data-ar="scatter" title="重新撒开">🎲 打散</button>';
-          res.appendChild(bar);
-          bar.querySelectorAll('[data-ar]').forEach((btn) => { btn.onclick = () => this.arrangeNotes(u, btn.dataset.ar); });
-          res.__bar = bar;
+          bar = document.createElement('div'); bar.className = 'note-arrange';
+          const likeBtn = document.createElement('button');
+          likeBtn.type = 'button';
+          likeBtn.className = 'ar-btn ar-main';
+          likeBtn.innerHTML = '👍 按点赞排序';
+          likeBtn.title = '点赞多的排在前面，整整齐齐铺在眼前';
+          likeBtn.onclick = () => this.arrangeNotes(u, 'like');
+          bar.appendChild(likeBtn);
         }
         const vp = renderNotes(res, u, rows, {
           canDel: active,
           draggable: active,
           resizable: active,
+          arrangeBar: bar,
           viewKey: 'tb:' + b.id + ':' + i,
           canvasH: 660,
           anchorEditable: active && !!(u.anchors && u.anchors.length),
@@ -781,11 +787,7 @@ const App = {
             else TY.db.removeSubmission(id).then(() => this.refreshBoard(true)).catch((e) => toast(e.message));
           }
         });
-        if (active && vp && vp.viewport) {
-          // 先插回卡片；若当前处于全屏，renderNotes 的还原逻辑会在下一帧把它搬进白板浮层
-          if (res.__bar) res.insertBefore(res.__bar, res.firstChild);
-          vp.viewport.appendChild(this.buildNoteDock());
-        }
+        if (active && vp && vp.viewport) vp.viewport.appendChild(this.buildNoteDock());
       } else if (u.subType === 'choice') renderChoice(res, u, rows);
       else if (u.subType === 'blank') renderBlank(res, u, rows);
       else if (u.subType === 'cloud') renderCloud(res, u, rows);
@@ -973,23 +975,37 @@ const App = {
   async arrangeNotes(unit, mode) {
     const rows = this.noteRows();
     if (!rows.length) { toast('还没有便签可以整理'); return; }
-    const plan = arrangeLayout(mode, rows, unit.anchors || [], TY._ncCenterLast);
+    /* 排布要围着「你现在看得见的那块地方」做，所以把视口的中心和世界尺寸都传进去。
+     * 只传中心（老写法）时，网格是按 1560×1080 基准区算的，比真实视口宽/高，
+     * 排完便签有一半落在视野外面 —— 老师点了会觉得「整理没反应」。 */
+    const cur = document.querySelector('.note-viewport');
+    const box = (cur && cur.__worldSize) ? cur.__worldSize() : null;
+    const plan = arrangeLayout(mode, rows, unit.anchors || [], TY._ncCenterLast, box);
     if (!plan.length) { toast('没有可整理的便签'); return; }
     toast('整理中…');
     try {
       for (let i = 0; i < plan.length; i++) {
         const p = plan[i];
-        const sub = rows.find((r) => r.id === p.id);
+        const sub = rows.find((rr) => rr.id === p.id);
         if (!sub) continue;
-        const data = Object.assign({}, sub.data || {}, { px: p.x, py: p.y });
+        const data = Object.assign({}, sub.data || {}, { px: Math.round(p.x), py: Math.round(p.y) });
         delete data.x; delete data.y;
         await TY.db.updateSubmission(p.id, { data });
       }
       await this.refreshBoard(true);
-      // 整理完自动「适应内容」，一眼看到整齐的结果
-      const vp = document.querySelector('.note-viewport');
-      if (vp && vp.__fitContent) setTimeout(() => vp.__fitContent(), 150);
-      toast('已整理 ✨');
+      /* 整理完自动「适应内容」：把排好的网格框进视口，省得老师自己缩放去找。
+       * ⚠️ 不能在这里直接判断 `vp.__fitContent` —— `refreshBoard` 只负责把 DOM 建出来，
+       *    真正挂上 `__fitContent` 的 `TY.setupInfiniteCanvas` 要等下一个 rAF 才跑，
+       *    所以**此刻它还是 undefined**，`if (vp && vp.__fitContent)` 恒为假、定时器根本没排上。
+       *    表现就是「便签其实排整齐了，但没对准视野，看起来像没反应」。
+       *    改成延迟之后**重新取一次 DOM**（那时可能已经换成新元素了），并允许重试几帧。 */
+      const tryFit = (n) => {
+        const v = document.querySelector('.note-viewport');
+        if (v && v.__fitContent) { v.__fitContent(); return; }
+        if (n > 0) setTimeout(() => tryFit(n - 1), 80);
+      };
+      setTimeout(() => tryFit(5), 180);
+      toast('已按点赞排序 ✨');
     } catch (e) { toast('整理失败：' + e.message); }
   },
   async moveAnchor(unit, id, x, y) {

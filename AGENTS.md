@@ -157,21 +157,60 @@ const multi = !!(document.getElementById('cfg-multi') || {}).checked;
 
 ---
 
+### 11. 「轮询会重绘」这件事只允许有「同步」的副作用，不许有延迟副作用
+
+白板每 2.5~3s 把 `#board-body` 整个 innerHTML 换掉。所以**任何「先渲染、再等一会儿搬一下」的写法，
+都会变成每 3 秒闪一次的动画** —— 因为中间那段时间会真的被画出来。
+
+2026-09-17 真实事故（用户原话：「左上角这个位置，这个一键整理它一直在闪烁」）：
+
+```js
+// ❌ 全屏还原：先把整理条留在卡片里，80ms 后再搬进白板浮层
+if (wasFull) setTimeout(() => TY.toggleNoteFull(viewport, true), 80);
+```
+
+逐帧测量（rAF 采样 7s）拿到的证据：
+
+| 时刻 | 整理条位置 | 说明 |
+|---|---|---|
+| t=0 | `(12,10) w=626` | 浮层里的正确位置 |
+| t=2528 | `(202,291) w=1036` | **轮询重绘后落回卡片里**（全屏时那个位置在浮层后面，看不见） |
+| t=2600 | `(12,10) w=626` | 80ms 后才被搬回浮层 |
+
+于是那个按钮每 2.5s 就在左上角「消失→出现」一次 = 闪烁。
+
+**同一个坑的第二个受害者**：`renderNotes()` 里
+```js
+const _needsDefer = !viewport.clientWidth;   // renderNotes 永远在「还没插进文档」时被调用
+if (_needsDefer) canvas.style.visibility = 'hidden';   // ← 于是每轮轮询都把画布藏一帧
+```
+`renderNotes` 是渲染完才由调用方 append 到页面上的，所以 `clientWidth` 恒为 0、
+`_needsDefer` 恒为真 —— **白板内容每 2.5s 白一帧**。修法：位置本来就在 `TY._ncViews[key]` 里存着，
+先同步把 `transform` 打上去（只有**首屏**才需要真的藏）。
+
+**约定**：
+- 需要搬动 DOM（挂载位置随状态变化）→ 在**同一个同步块里**搬完，别用 `setTimeout` / `requestAnimationFrame` 分期。
+- 需要「等元素进 DOM 才能算」→ 状态存下来，**先把已知的那部分同步应用**，再在 rAF 里补算剩下的，不要靠 `visibility:hidden` 遮。
+- 整理条（`.note-arrange`）的归位交给 `renderNotes` 的 `opts.arrangeBar` 处理（它知道 `wasFull`），
+  **不要在 `renderBoardBody` 里自己 `insertBefore`** —— 那样就退回了「先卡片、后浮层」的两段式。
+
+---
+
 ## 文件职责
 
 | 文件 | 职责 | 改它的风险 |
 |---|---|---|
-| `index.html` | 老师端全部逻辑（课程、发起互动、大屏、下发弹窗、课程封面 `App.pickCover` / `App.clearCover`、互动拖动排序 `App.bindActDrag` / `App.startActDrag` / `App.reorderAct`、随机点名 `App.rc` / `buildRollCallPanel` / `rollCall` / `makeGroups` / `removeSignin`、选择题单选/多选切换 `App.toggleMulti`） | 高，改前先读懂 `renderBoardBody` + 约束 8、`createBoard` 的表单读取 + 约束 10 |
+| `index.html` | 老师端全部逻辑（课程、发起互动、大屏、下发弹窗、课程封面 `App.pickCover` / `App.clearCover`、互动拖动排序 `App.bindActDrag` / `App.startActDrag` / `App.reorderAct`、随机点名 `App.rc` / `buildRollCallPanel` / `rollCall` / `makeGroups` / `removeSignin`、选择题单选/多选切换 `App.toggleMulti`、便签整理 `App.arrangeNotes`） | 高，改前先读懂 `renderBoardBody` + 约束 8 / 11、`createBoard` 的表单读取 + 约束 10 |
 | `student.html` | 学生端（输码进入、共享看板、提交、便签带图 `S.imgData` / `bindImgPicker` / `setImgPreview` / `compressImage`、点名报名 `S.renderSignGate` / `S.signIn`） | 中，动图片状态前先读约束 5 |
-| `js/common.js` | 公共渲染器：无限画布、便签渲染、一键整理、各类型结果渲染、**点名名册 `rosterItems` / `signinName` / `renderRoster`** | **最高**，前后端共用 |
+| `js/common.js` | 公共渲染器：无限画布、便签渲染、按点赞整理、各类型结果渲染、**点名名册 `rosterItems` / `signinName` / `renderRoster`** | **最高**，前后端共用；动 `renderNotes` 前必读约束 11 |
 | `js/db.js` | 数据层入口：环境探测 + 两模式共用工具（含拖动排序落库 `reorderBoards`） | 高（见约束 2） |
 | `js/store.local.js` | 本地模式实现（localStorage，含 `reorderBoards`） | 高（见约束 2） |
 | `css/style.css` | 全部样式（暖纸感 + 黑描边 + 橙点缀） | 低，但改完必须强刷 |
 | `config.js` | 提交到仓库的空模板 | 绝不要写真实值 |
 | `cloudbase/migrations/` | 建表 SQL + RLS 策略 | 改前确认权限模型 |
 
-便签墙的关键内部机制（`TY._ncViews` 视图记忆、`NC_ORIGIN`、`findFreeSpot`、
-`arrangeLayout` 六种整理模式、`NOTE_SHAPES` 四种形状）详见
+便签墙的关键内部机制（`TY._ncViews` 视图记忆、`TY._ncCenter` / `TY._ncSize`、
+`NC_ORIGIN`、`findFreeSpot`、`arrangeLayout`、`NOTE_SHAPES` 四种形状）详见
 `~/.workbuddy/skills/classroom-interactive-whiteboard/references/architecture.md`。
 
 ---
@@ -427,6 +466,25 @@ base = floor(n / k),  rem = n % k        // 前 rem 组多 1 人
   `0917数字分身工作坊/身份选择`、`教育开放麦/你觉得ai是人还是工具？`、
   `【AI通识课培训】/选择·你想做html还是应用？` —— 想改单选的老师点一下大屏上的「🔘 单选」即可
   （**没敢替老师改，原意不明**）。
+- **便签墙整理条精简 + 「点了整理像没反应」+ 全屏下闪烁（2026-09-17 用户反馈）**：
+  1. **六个按钮砍到只剩「👍 按点赞排序」**，并去掉左边那个 `一键整理` 标签。
+     老师原话：「也不需要按照这么多的这种来去做排序…我们就直接有一个按点赞排序就可以了」。
+     其余排布模式（`time` / `color` / `shape` / `anchor` / `scatter`）在
+     `arrangeLayout` 里**保留着**，想加回来只需在 `index.html` 的整理条里补按钮。
+  2. **整理结果不再跑出视野**：`arrangeLayout(mode, rows, anchors, center, box)` 新增
+     `box`（当前视口的**世界尺寸**，来自新的 `viewport.__worldSize()` / `TY._ncSize[]`）。
+     按点赞排序改成「按便签实际宽度定格子 → 选长宽比最接近可视区的列数 →
+     整块网格以视口中心对称摆放」，排完 `__fitContent()` 兜底。
+     实测 10 条便签 → 5×2 网格，x∈[287,1273] y∈[337,727]，**完全落在 1032×590 的可视区内**，
+     缩放不用变（100%），点赞序 7/6/5/4/3 + 2/2/1/1/0 自左向右、自上而下。
+     老写法按固定 1560×1080 基准区铺，网格比真实视口大 —— 排完便签一半在视野外，
+     这就是「排了跟没排一样」的根因。
+  3. **全屏下整理条每 2.5s 闪一次**（约束 11）：`renderNotes` 里
+     `setTimeout(() => TY.toggleNoteFull(viewport, true), 80)` 被删掉，改为
+     **同一同步块内**用新的 `opts.arrangeBar` 直接摆好（全屏 → 浮层，非全屏 → 卡片顶部）。
+     顺带修掉「画布每轮 `visibility:hidden` 一帧」（同一条约束里那个 `_needsDefer`）。
+     逐帧实测（rAF 采样 7s）：修前 9 次状态跳变（`(12,10)w=626` ⇄ `(202,291)w=1036`
+     + `canvas:hidden`）；修后 **0 次跳变**。
 
 **悬而未决**：
 
