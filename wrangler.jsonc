@@ -9,8 +9,5 @@
     "directory": "./release",
     "html_handling": "auto-trailing-slash",
     "not_found_handling": "none"
-  },
-  "routes": [
-    { "pattern": "interaction.teacheryo.ai", "custom_domain": true }
-  ]
+  }
 }
