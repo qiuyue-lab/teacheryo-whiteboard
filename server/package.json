@@ -1,0 +1,23 @@
+{
+  "name": "teacheryo-api",
+  "version": "1.0.0",
+  "private": true,
+  "description": "TeacherYO 数据 API Worker（Drizzle + D1）",
+  "scripts": {
+    "dev": "wrangler dev --port 8787",
+    "deploy": "wrangler deploy",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate:local": "wrangler d1 migrations apply teacheryo-db --local",
+    "db:migrate:remote": "wrangler d1 migrations apply teacheryo-db --remote",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.45.2"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260919.1",
+    "drizzle-kit": "^0.31.10",
+    "typescript": "^7.0.2",
+    "wrangler": "^4.135.0"
+  }
+}

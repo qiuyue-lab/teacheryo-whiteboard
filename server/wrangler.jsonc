@@ -1,0 +1,18 @@
+{
+  // TeacherYO 数据 API Worker（Drizzle + D1）
+  // 前端（teacheryo-whiteboard 静态 Worker）通过 fetch 调本 Worker
+  "name": "teacheryo-api",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-01",
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "teacheryo-db",
+      "database_id": "a197f233-b4ea-49c2-ad86-421b301b057b"
+    }
+  ],
+  "vars": {
+    // 允许跨域访问 API 的站点（逗号分隔，精确匹配 Origin）
+    "ALLOWED_ORIGINS": "https://teacheryo-whiteboard.jshansince93.workers.dev,http://localhost:8000,http://127.0.0.1:8000,http://localhost:8921,http://127.0.0.1:8921"
+  }
+}

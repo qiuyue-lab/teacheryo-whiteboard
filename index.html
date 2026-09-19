@@ -176,10 +176,10 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="vendor/cloudbase.full.js"></script>
 <script src="config.js"></script>
 <script src="config.local.js"></script>
 <script src="js/store.local.js"></script>
+<script src="js/store.api.js"></script>
 <script src="js/common.js"></script>
 <script src="js/db.js"></script>
 <script>
@@ -256,7 +256,7 @@ const App = {
       this.router();
       window.addEventListener('hashchange', () => this.router());
     }).catch((e) => {
-      document.body.innerHTML = `<div class="page"><div class="card" style="padding:30px"><h1 style="font-weight:900">连接失败</h1><p class="muted" style="margin-top:10px">${esc(e && e.message || e)}</p><p class="muted" style="margin-top:6px">请检查 config.js 里的 envId 是否填对，以及云开发控制台是否已开启「匿名登录」。</p></div></div>`;
+      document.body.innerHTML = `<div class="page"><div class="card" style="padding:30px"><h1 style="font-weight:900">连接失败</h1><p class="muted" style="margin-top:10px">${esc(e && e.message || e)}</p><p class="muted" style="margin-top:6px">请检查 config.js 里的 api 数据服务地址是否填对，以及数据服务是否在线。</p></div></div>`;
     });
   },
   async ensureReady() { await TY.db.currentUid(); },

@@ -12,3 +12,8 @@ Thumbs.db
 # ---------- 临时调试文件 ----------
 _*_probe.html
 *.bak
+
+# Cloudflare Workers 部署产物与本地状态（不进 git）
+release/
+.wrangler/
+node_modules/

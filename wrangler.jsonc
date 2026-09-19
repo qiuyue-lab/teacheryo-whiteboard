@@ -1,0 +1,16 @@
+{
+  // Cloudflare Workers 静态资产部署（assets-only Worker，无 main 脚本）
+  // 本地预览：wrangler dev   部署：wrangler deploy
+  "name": "teacheryo-whiteboard",
+  "compatibility_date": "2026-09-01",
+  "assets": {
+    // release/ 由 CI 组装（index.html student.html config.js css js vendor）
+    // 本地部署前同样组装：见 .github/workflows/deploy.yml 的 Assemble release 步骤
+    "directory": "./release",
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "none"
+  },
+  "routes": [
+    { "pattern": "interaction.teacheryo.ai", "custom_domain": true }
+  ]
+}

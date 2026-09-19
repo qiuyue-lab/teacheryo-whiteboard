@@ -10,9 +10,11 @@
 ## 一句话定位
 
 **零构建、可自托管的课堂互动工具。** 纯 HTML / CSS / 原生 JS，无 npm、无打包步骤、
-无框架；数据层双模式（浏览器 localStorage ↔ 腾讯云 CloudBase PostgreSQL）。
+无框架；数据层双模式（浏览器 localStorage ↔ Cloudflare Worker API + D1）。
 
-技术栈就这么简单，所以**任何"现代化改造"（引入构建工具、框架、npm 依赖）都视为破坏**。
+技术栈就这么简单，所以**任何"现代化改造"（给前端引入构建工具、框架、npm 依赖）都视为破坏**。
+唯一的例外：`server/` 目录（数据 API Worker）允许用 npm / TypeScript / Drizzle——
+那是部署工具链，不属于前端页面；**前端仍然双击 `index.html` 就能跑**。
 
 ---
 
@@ -20,21 +22,30 @@
 
 ### 1. 零构建不可破坏
 
-不引入 npm / webpack / vite / TypeScript / 任何构建工具或运行时依赖。
-必须始终保持**双击 `index.html` 就能跑**。
+前端（`index.html` / `student.html` / `js/` / `css/`）不引入 npm / webpack / vite /
+TypeScript / 任何构建工具或运行时依赖。必须始终保持**双击 `index.html` 就能跑**。
+构建工具只允许出现在 `server/`（数据 API Worker）里。
 
 ### 2. 数据层是双模式的 —— 加接口必须两边都加
 
-`js/db.js` 启动时探测 `envId`：
+`js/db.js` 启动时探测 `config.js` 的 `api` 字段：
 
 ```
-envId 留空  →  挂 window.TY_LOCAL（js/store.local.js，localStorage）
-envId 有值  →  CloudBase 实现（匿名登录 + app.rdb()）
+api 留空  →  挂 window.TY_LOCAL（js/store.local.js，localStorage）
+api 有值  →  挂 window.TY_API（js/store.api.js，fetch 到 teacheryo-api Worker + D1）
 ```
 
 两套实现**必须同签名**，返回字段统一 snake_case
 （`course_id` / `created_at` / `liked_by` / `part_idx`）。
 **只改一边 → 本地模式会静默失效**（不报错，功能直接没有）。
+
+数据 API Worker（`server/`，Cloudflare D1）三张表与接口语义：
+- 表：`courses` / `boards` / `submissions`（`server/src/schema.ts`，JSON 列用 TEXT 存 JSON）
+- uid：浏览器 localStorage（`ty.api.uid`）生成，每次请求经 `x-ty-uid` 头带上；
+  `toggleLike` 在 Worker 里用**原子 SQL**（条件 UPDATE + json 函数），
+  不要改回「读-改-写」（并发点赞会丢计数）
+- CORS：`server/wrangler.jsonc` 的 `ALLOWED_ORIGINS` 白名单（逗号分隔），
+  新增部署域名必须加进去，否则浏览器端表现为 `TypeError: Failed to fetch`
 
 现有接口：`listCourses` `getCourse` `createCourse` `updateCourse` `deleteCourse`
 `listBoards` `getBoard` `getBoardByCode` `createBoard` `updateBoard` `deleteBoard`
@@ -203,11 +214,13 @@ if (_needsDefer) canvas.style.visibility = 'hidden';   // ← 于是每轮轮询
 | `index.html` | 老师端全部逻辑（课程、发起互动、大屏、下发弹窗、课程封面 `App.pickCover` / `App.clearCover`、互动拖动排序 `App.bindActDrag` / `App.startActDrag` / `App.reorderAct`、随机点名 `App.rc` / `buildRollCallPanel` / `rollCall` / `makeGroups` / `removeSignin`、选择题单选/多选切换 `App.toggleMulti`、便签整理 `App.arrangeNotes`） | 高，改前先读懂 `renderBoardBody` + 约束 8 / 11、`createBoard` 的表单读取 + 约束 10 |
 | `student.html` | 学生端（输码进入、共享看板、提交、便签带图 `S.imgData` / `bindImgPicker` / `setImgPreview` / `compressImage`、点名报名 `S.renderSignGate` / `S.signIn`） | 中，动图片状态前先读约束 5 |
 | `js/common.js` | 公共渲染器：无限画布、便签渲染、按点赞整理、各类型结果渲染、**点名名册 `rosterItems` / `signinName` / `renderRoster`** | **最高**，前后端共用；动 `renderNotes` 前必读约束 11 |
-| `js/db.js` | 数据层入口：环境探测 + 两模式共用工具（含拖动排序落库 `reorderBoards`） | 高（见约束 2） |
+| `js/db.js` | 数据层入口：`api` 留空→本地模式，有值→挂 `TY_API`（fetch 到数据 Worker） | 高（见约束 2） |
 | `js/store.local.js` | 本地模式实现（localStorage，含 `reorderBoards`） | 高（见约束 2） |
+| `js/store.api.js` | 云端模式实现：fetch 到 teacheryo-api Worker，uid 存 `ty.api.uid`、`x-ty-uid` 头带上 | 高（见约束 2） |
+| `server/` | 数据 API Worker（Drizzle + D1）：`src/schema.ts` 三张表、`src/index.ts` 21 个接口、`tests/` 功能+压测脚本 | 高（构建工具只在这里；改完跑 `npm run typecheck` + `tests/smoke.mjs`） |
 | `css/style.css` | 全部样式（暖纸感 + 黑描边 + 橙点缀） | 低，但改完必须强刷 |
-| `config.js` | 提交到仓库的空模板 | 绝不要写真实值 |
-| `cloudbase/migrations/` | 建表 SQL + RLS 策略 | 改前确认权限模型 |
+| `config.js` | 提交到仓库的空模板（`api: ''`） | 绝不要写真实值 |
+| `cloudbase/` | 【历史遗留】旧 CloudBase 建表 SQL + RLS，仅存档参考，**不要再按它开发** | 只读 |
 
 便签墙的关键内部机制（`TY._ncViews` 视图记忆、`TY._ncCenter` / `TY._ncSize`、
 `NC_ORIGIN`、`findFreeSpot`、`arrangeLayout`、`NOTE_SHAPES` 四种形状）详见
@@ -350,16 +363,37 @@ base = floor(n / k),  rem = n % k        // 前 rem 组多 1 人
 
 ## 部署
 
+**当前主部署（2026-09-19 起）：Cloudflare Workers 两件套**：
+
+1. **前端 Worker** `teacheryo-whiteboard`：`wrangler.jsonc`（根目录，assets-only Worker），
+   `assets.directory = ./release`。部署前先组装 release：
+   `mkdir release && cp index.html student.html config.js release/ && cp -r css js vendor release/`
+   再把**填好 `api` 地址的 `config.js`** 覆盖进 `release/`（api 指 teacheryo-api Worker，
+   **不进 git**）。然后 `cd release && npx wrangler deploy`。
+   线上 `https://teacheryo-whiteboard.jshansince93.workers.dev/`
+2. **数据 API Worker** `teacheryo-api`：`server/wrangler.jsonc`（D1 绑定 `teacheryo-db`，
+   `ALLOWED_ORIGINS` 白名单）。`cd server && npx wrangler deploy`；
+   建表/改表走 `npm run db:generate`（drizzle-kit）+ `npm run db:migrate:remote`。
+   线上 `https://teacheryo-api.jshansince93.workers.dev`
+   ⚠️ 新增**部署域名**（换前端托管地址）必须同步把新 Origin 加进
+   `server/wrangler.jsonc` 的 `ALLOWED_ORIGINS` 并重新 deploy，否则浏览器端报
+   `TypeError: Failed to fetch`（CORS 预检被拒）
+3. **自动部署**：`.github/workflows/deploy.yml`（推 `main` 自动 wrangler deploy）。
+   需要 GitHub Secrets：`CLOUDFLARE_API_TOKEN`、`CLOUDFLARE_ACCOUNT_ID`、
+   `CONFIG_JS`（填好版 config.js 全文，用于云端模式；不配则发布本地模式）。
+   workflow 会自己组装 release 并注入 config，**不要把填好的 config.js 提交进仓库**
+
+**历史部署（CloudBase / GitHub Pages）**：
+
 - **CloudBase 静态托管**：`manageHosting(upload)`，线上地址
   `https://teacheryo-d5g4wbd0sde42bcf6-1482570882.tcloudbaseapp.com`
-  （凭据过期用本地 `tcb` CLI 兜底）
+  （凭据过期用本地 `tcb` CLI 兜底）——**2026-09-19 起数据层已迁走，此地址不再更新**
 - **GitHub Pages**：推 `main` 分支即自动部署到
-  `https://qiuyue-lab.github.io/teacheryo-whiteboard/`
-- 托管里**没有** `config.local.js`（实测 2026-09-17 的文件清单）：线上是靠**填好版 `config.js`**
-  跑云端模式的。`config.local.js` 只是本地开发时避免改脏模板用的。
+  `https://qiuyue-lab.github.io/teacheryo-whiteboard/`——它用的是仓库空模板
+  `config.js`（本地模式），历史上也一直如此（从未加进 CloudBase 安全域名白名单）
 - ⚠️ **绝对不要整目录上传**（这条踩过就会静默坏掉）：
-  仓库里的 `config.js` 是**空模板**（`envId: ''`，1598 字节），而**线上那份是填好的**
-  （`envId: 'teacheryo-d5g4wbd0sde42bcf6'` + Publishable Key，2092 字节）。
+  仓库里的 `config.js` 是**空模板**（`api: ''`），而**线上那份是填好的**
+  （api 指向 teacheryo-api Worker）。
   整目录覆盖会把线上打回**本地模式**：学生扫码后各存各的浏览器、大屏永远看不到别人的提交，
   **而且不报错**，看起来一切正常。
   正确做法：**只上传真正改过的文件**（用 `manageHosting` 的 `files` 参数逐项指定），
@@ -374,11 +408,6 @@ base = floor(n / k),  rem = n % k        // 前 rem 组多 1 人
   要彻底去掉只能绑定自有域名。上线给真实班级用之前，务必自己用浏览器点一遍确认。
   - 本次是用 agent-browser 真点了一遍：`find text "确定访问" click` 之后才进到应用，
     确认右上角是「云端同步」、能列出真实课程。
-- ⚠️ **`anon` / `authenticated` 的权限边界（2026-09-17 实测更正）**：迁移 SQL 里写的是
-  `GRANT SELECT ON courses, boards TO anon`，但**线上实测「经 CloudBase JS SDK 匿名登录」的用户
-  走的是 `authenticated` 角色**（`boards` 的 UPDATE 实际能成功）。所以线上是可以正常改数据
-  （改 step、改课程封面都能落库），但也意味着**别在线上拿真实课程做破坏性实验**。
-  需要区分「只是读」和「要写」时，先想清楚这一条。
 - ⚠️ **`git status` 说 `ahead 1`、但 push 输出 `Everything up-to-date` —— 先别慌，多半是锁没删掉**：
   跑在助手沙箱里时，`git` 在 `.git/` 下建/删锁文件会被拦（`Operation not permitted`），
   于是留下 `index.lock` 或 `refs/remotes/origin/main.lock`，下一次 git 命令直接报
@@ -394,6 +423,15 @@ base = floor(n / k),  rem = n % k        // 前 rem 组多 1 人
 - 已开源：`github.com/qiuyue-lab/teacheryo-whiteboard`（MIT，gh 账号 `qiuyue-lab`）
 - 已内置 `.workbuddy/skills/visual-cognition-slides/`（MIT，来源 edu-ai-builders），
   作为项目的视觉设计语言参考
+- **数据层已整体迁到 Cloudflare（2026-09-19）**：腾讯云 CloudBase 收费策略变化，
+  数据层重建为 `server/`（Cloudflare Worker + Drizzle + D1，`teacheryo-db`）。
+  前端从 `vendor/cloudbase.full.js` 切到原生 fetch（`js/store.api.js`），
+  `js/db.js` 探测字段从 `envId` 改为 `api`，**前端页面渲染层零改动**。
+  uid 改为浏览器生成（`ty.api.uid`），`toggleLike` 用原子 SQL（30 并发点赞一致性实测精确）。
+  验证：功能冒烟 39 PASS（21 接口正反向 + CORS）、压测 30 学生×3 轮提交 P95 223ms
+  + 30 并发点赞 likes 精确=30、无头 Chrome 探针老师端/学生端各 14 PASS（真实页面连真实 API）、
+  线上探针 10 PASS。**旧 CloudBase 数据未迁移**（用户决定重建，旧数据在
+  `teacheryo-d5g4wbd0sde42bcf6` 环境里，库结构见 `cloudbase/migrations/` 存档）。
 - **便签带图两端都有**：老师端 `.note-dock-wrap`（`App.compressImage`，`w:230`），
   学生端 `S.bindImgPicker` / `S.compressImage`（`w:210`）。
   两端共用渲染：`common.js` 里 `data.img → .note-mini .note-img`，元数据统一是
